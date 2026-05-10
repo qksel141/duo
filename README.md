@@ -52,8 +52,8 @@
 
 - **PM (Product Manager):** 동혁
 - **Tech Lead:** 일서
-- **UI/UX Designer:**
+- **UI/UX Designer:** 도건
 - **QA Engineer:** 이정진
 - **Scrum Master:** 동혁
 - **Tech Writer:** 동혁
-- **DevRel (Presenter):** 동혁,
+- **DevRel (Presenter):** 동혁,도건
