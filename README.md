@@ -52,7 +52,7 @@
 
 - **PM (Product Manager):** 동혁
 - **Tech Lead:** 일서
-- **UI/UX Designer:** 도건, 윤재
+- **UI/UX Designer:** 도건, 윤재, 규찬
 - **QA Engineer:** 이정진
 - **Scrum Master:** 동혁
 - **Tech Writer:** 동혁
