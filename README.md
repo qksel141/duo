@@ -1,25 +1,7 @@
 # React + Vite
 
-<<<<<<< HEAD
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-=======
    > **게임 성향이 맞는 듀오를 쉽고 빠르게 찾아주는 게이머 매칭 웹 서비스**
->>>>>>> 5b4dda485c70114576578e71314f192afdfceac7
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-<<<<<<< HEAD
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-=======
 ## ⭐ 3. 핵심 기능
 
 > 프론트엔드 환경에서 3주 내에 구현할 수 있는 핵심적인 기능 딱 3가지를 정의합니다.
@@ -62,4 +44,3 @@ If you are developing a production application, we recommend using TypeScript wi
 - **Scrum Master:** 동혁
 - **Tech Writer:** 동혁
 - **DevRel (Presenter):** 동혁,도건
->>>>>>> 5b4dda485c70114576578e71314f192afdfceac7
