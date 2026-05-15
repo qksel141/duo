@@ -1,59 +1,16 @@
-# 🚀나랑 듀오할래 죽을래 ㅋ
+# React + Vite
 
-> **"여기에 서비스를 매력적으로 표현하는 한 줄 소개를 적어주세요."**
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
----
+Currently, two official plugins are available:
 
-## 🎯 1. 기획 배경 및 해결 과제
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-- 현재 상황 및 문제점: 혼자 게임하는건 재미없고 같이 게임하기에는 듀오찾기가 힘들고 불편하고 상대방이 원하는것들이 너무 많음
-- **우리가 제공할 해결책:** 내가 원하는 상대방과 재밌게 게임 할 수 있도록 보기 편한 ui 및 유저와 비슷한 성향을 가진 상대방과의 매칭기능
+## React Compiler
 
-## 👤 2. 타겟 유저 페르소나
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-- 인구통계학적 특성:롤을 주로 하는 게이머들
-- **불편함:** 듀오를 하고싶은데 너무 다 진지한 게임을 원하는 사람만 많기도 하고 대부분이 예민할 뿐더러 상대방의 성향이 어떤지도 모르는 문제 발생
-- **기대하는 것:** 나와 상대가 매칭이 되었을때에만 듀오를 할 수 있어 성향도 잘 맞고 성격도 잘 맞고 게임에 재미를 붙여서 웹을 더 많이 방문하는 현상
+## Expanding the ESLint configuration
 
-## ⭐ 3. 핵심 기능
-
-> 프론트엔드 환경에서 3주 내에 구현할 수 있는 핵심적인 기능 딱 3가지를 정의합니다.
-
-1. **[스와이프]**: 왼쪽으로 쓸어넘기면 다음 사람을 보여주고 오른쪽으로 쓸어넘기면 매칭 기능
-2. **[별점]**: 상세한 별점 조절을 통해서 보다 정밀하게 매칭상대의 매너 및 실력을 검증
-3. **[채팅]**:실시간 채팅은 아니지만 매칭 성공시 채팅방 화면 구현
-
-## 🗺️ 4. 화면 설계 및 유저 플로우
-
-- 사용자가 우리 웹사이트에 접속하여 목표를 달성하기까지의 클릭 흐름을 단계별로 작성합니다.
-  1. `메인 페이지` 접속
-  2. 스와이프 기능을 통해 사용자와 매칭
-  3. 둘 다 매칭 성공시 채팅기능으로
-  4. 듀오 완료 후 별점 및 신고
-  5. 변동사항 발생시 마이페이지에서 정보수정
-
-## 🛠️ 5. 기술 스택 및 아키텍처
-
-- **언어:** HTML5, CSS3, JavaScript, mysql
-- **스타일링:** Tailwind CSS
-- **버전 관리 및 배포:** Git, GitHub, GitHub Pages
-- **기획 도구:** Figma, Notion
-
-## 🤝 6. 팀 규칙 및 역할 분담
-
-### 📌 팀 규칙
-
-- **소통 채널:** 디스코드
-- **정기 회의:** 시간 조율 후 조정
-- **Git Commit 룰:** `feat:`(기능), `fix:`(버그), `docs:`(문서), `design:`(UI) 사용
-- **리뷰 룰:** <code>main</code> 브랜치 병합 전 최소 1명 이상 승인 필요
-
-### 👥 팀원 역할
-
-- **PM (Product Manager):** 동혁
-- **Tech Lead:** 일서
-- **UI/UX Designer:**
-- **QA Engineer:** 이정진
-- **Scrum Master:** 동혁
-- **Tech Writer:** 동혁
-- **DevRel (Presenter):** 동혁,
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
