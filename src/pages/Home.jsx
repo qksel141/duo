@@ -1,42 +1,66 @@
 import React from 'react';
+
 export default function Home() {
   return (
-    <div className="min-h-screen bg-stone-100">
-
-      {/* 컨테이너 */}
-      <div className="max-w-md mx-auto px-4 py-6">
-
-        {/* 제목 */}
-        <div className="mb-6">
-          <h1 className="text-4xl font-extrabold tracking-tight text-stone-900">
-            LOL DUO
+    <div className="min-h-screen bg-stone-950 text-white flex flex-col relative overflow-hidden">
+      
+      {/* 네비게이션 바 */}
+      <header className="w-full max-w-7xl mx-auto px-10 py-6 flex items-center justify-between z-10">
+        <div className="flex items-baseline gap-8">
+          {/*로고*/}
+          <h1 className="text-3xl font-black tracking-tight text-white select-none">
+            FInd DUO
           </h1>
-
-          <p className="text-stone-500 mt-2">
-            LoL 듀오 매칭 서비스
-          </p>
+          {/* 네비게이션 메뉴 */}
+          <nav className="flex gap-6 text-sm font-medium text-stone-400">
+            <a href="#service" className="hover:text-white transition-colors">서비스</a>
+            <a href="#intro" className="hover:text-white transition-colors">소개</a>
+            <a href="#download" className="hover:text-white transition-colors">다운로드</a>
+          </nav>
         </div>
+      </header>
 
-        {/* 프로필 */}
-        <div className="flex justify-center">
+      {/*중앙 정렬*/}
+      <main className="flex-1 flex items-center justify-center px-4 pb-12">
+        <div className="flex items-center gap-8 relative max-w-4xl w-full justify-center">
+          
+          {/* 왼쪽 PASS 버튼 */}
+          <button
+            className="
+              w-16 h-16
+              rounded-full
+              bg-stone-900/80
+              border border-stone-800
+              shadow-xl
+              flex items-center justify-center
+              text-xl
+              text-stone-400
+              transition-all duration-300
+              hover:bg-stone-800
+              hover:text-white
+              hover:scale-110
+              active:scale-95
+              backdrop-blur-md
+            "
+          >
+            ←
+          </button>
 
+          {/* 중앙 프로필 카드 */}
           <div
             className="
               relative
-              w-full
-              max-w-sm
-              aspect-[9/16]
+              w-[400px]
+              h-[680px]
               rounded-3xl
               overflow-hidden
-              bg-white/75
-              backdrop-blur-xl
-              border border-white/30
-              shadow-md
-              hover:shadow-xl
+              bg-white
+              border border-white/10
+              shadow-[0_0_50px_rgba(0,0,0,0.8)]
               transition-all duration-300
+              hover:scale-[1.01]
             "
           >
-
             {/* 프로필 이미지 */}
             <img
               src="https://images.unsplash.com/photo-1511367461989-f85a21fda167?q=80&w=1200&auto=format&fit=crop"
@@ -44,25 +68,25 @@ export default function Home() {
               className="w-full h-full object-cover"
             />
 
-            {/* 하단 정보 */}
+            {/* 하단 정보 플레이트 */}
             <div
               className="
                 absolute bottom-0 left-0 right-0
-                p-5
-                bg-black/20
-                backdrop-blur-md
+                p-6
+                bg-black/40
+                backdrop-blur-xl
+                border-t border-white/10
               "
             >
-
               <h2 className="text-3xl font-extrabold text-white tracking-tight">
                 김도건
               </h2>
 
-              <p className="text-white/90 mt-1">
+              <p className="text-stone-200 mt-1.5 text-sm font-medium">
                 Diamond 2 · 84LP · KR · 20세 · JUG
               </p>
 
-              <p className="text-white/80 text-sm mt-2">
+              <p className="text-stone-300 mt-2 text-sm">
                 듀오 구함
               </p>
 
@@ -74,71 +98,45 @@ export default function Home() {
                   items-center
                   gap-2
                   px-4 py-2
-                  rounded-2xl
-                  bg-white/60
-                  backdrop-blur-xl
-                  border border-white/30
+                  rounded-xl
+                  bg-stone-900/80
+                  backdrop-blur-md
+                  border border-stone-800
                 "
               >
-                <span className="text-yellow-400">
+                <span className="text-yellow-500 text-sm">
                   ★★★★
                 </span>
-
-                <span className="text-stone-700 text-sm">
+                <span className="text-stone-300 text-xs font-semibold">
                   4.0 (24)
                 </span>
               </div>
-
             </div>
           </div>
-        </div>
 
-        {/*하단 버튼 */}
-        <div className="flex items-center justify-center gap-5 mt-8">
-
-          {/* 넘기기(PASS)버튼 */}
+          {/* 오른쪽 LIKE 버튼 */}
           <button
             className="
-              w-14 h-14
+              w-16 h-16
               rounded-full
-              bg-white/70
-              backdrop-blur-xl
-              border border-stone-200
-              shadow-md
+              bg-violet-600
+              shadow-xl
               flex items-center justify-center
-              text-stone-500
-              transition-all duration-300
-              hover:scale-100
-              hover:shadow-xl
-              active:scale-95
-            "
-          >
-            ←
-          </button>
-
-          {/* 좋아요(LIKE)버튼 */}
-          <button
-            className="
-              w-14 h-14
-              rounded-full
-              bg-violet-500
+              text-xl
               text-white
-              shadow-md
-              flex items-center justify-center
               transition-all duration-300
-              hover:bg-violet-600
-              hover:scale-100
-              hover:shadow-xl
+              hover:bg-violet-500
+              hover:scale-110
               active:scale-95
+              shadow-violet-950/50
             "
           >
             →
           </button>
+
         </div>
-         
+      </main>
 
-      </div>
     </div>
-
   );
 }
