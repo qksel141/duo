@@ -68,75 +68,49 @@ export default function Home() {
               className="w-full h-full object-cover"
             />
 
-            {/* 카드 오버레이 */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-            {/* 상단 롤 닉네임 / 티어 정보 */}
-            <div className="absolute top-5 left-5 right-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between gap-3 rounded-3xl border border-white/10 bg-black/50 p-4 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-2xl text-amber-300">
-                    🏆
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.25em] text-stone-300">
-                      티어
-                    </p>
-                    <p className="text-sm font-semibold text-white">
-                      Platinum II
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
-                  솔로랭크
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-white/10 bg-black/50 p-4 backdrop-blur-md">
-                <p className="text-xs uppercase tracking-[0.25em] text-stone-300">
-                  롤 닉네임
-                </p>
-                <h3 className="mt-2 text-3xl font-extrabold text-white tracking-tight">
-                  도건MVP
-                </h3>
-              </div>
-            </div>
-
             {/* 하단 정보 플레이트 */}
             <div
               className="
                 absolute bottom-0 left-0 right-0
                 p-6
-                bg-black/55
+                bg-black/40
                 backdrop-blur-xl
                 border-t border-white/10
               "
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight">
-                    김도건
-                  </h2>
-                  <p className="text-stone-300 mt-1.5 text-sm font-medium">
-                    KR · 20세 · JUG
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1 rounded-3xl bg-stone-900/80 px-4 py-3 text-right border border-stone-700/80">
-                  <span className="text-[0.65rem] uppercase tracking-[0.35em] text-stone-400">
-                    매너 별점
-                  </span>
-                  <span className="text-3xl font-bold text-amber-300">
-                    4.8
-                  </span>
-                  <span className="text-xs text-stone-400">
-                    362회 평가
-                  </span>
-                </div>
-              </div>
+              <h2 className="text-3xl font-extrabold text-white tracking-tight">
+                김도건
+              </h2>
 
-              <p className="text-stone-300 mt-4 text-sm">
-                듀오 구합니다. 함께 편하게 즐길 분 환영해요.
+              <p className="text-stone-200 mt-1.5 text-sm font-medium">
+                Diamond 2 · 84LP · KR · 20세 · JUG
               </p>
+
+              <p className="text-stone-300 mt-2 text-sm">
+                듀오 구함
+              </p>
+
+              {/* 별점 */}
+              <div
+                className="
+                  mt-4
+                  inline-flex
+                  items-center
+                  gap-2
+                  px-4 py-2
+                  rounded-xl
+                  bg-stone-900/80
+                  backdrop-blur-md
+                  border border-stone-800
+                "
+              >
+                <span className="text-yellow-500 text-sm">
+                  ★★★★
+                </span>
+                <span className="text-stone-300 text-xs font-semibold">
+                  4.0 (24)
+                </span>
+              </div>
             </div>
           </div>
 
