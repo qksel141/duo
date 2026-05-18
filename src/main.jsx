@@ -4,7 +4,7 @@ import React from 'react';
 export default function Main() {
   // 화면에 띄울 예시 데이터
   const userData = {
-    nickname: '포로사랑꾼',
+    nickname: '심규찬',
     tier: 'GOLD 1 · 77LP',
     info: 'KR · 21세 · ',
     intro: '게임 즐겁게 함께할 듀오 구해요 ',
