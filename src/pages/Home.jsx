@@ -1,0 +1,142 @@
+import React from 'react';
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-stone-950 text-white flex flex-col relative overflow-hidden">
+      
+      {/* 네비게이션 바 */}
+      <header className="w-full max-w-7xl mx-auto px-10 py-6 flex items-center justify-between z-10">
+        <div className="flex items-baseline gap-8">
+          {/*로고*/}
+          <h1 className="text-3xl font-black tracking-tight text-white select-none">
+            FInd DUO
+          </h1>
+          {/* 네비게이션 메뉴 */}
+          <nav className="flex gap-6 text-sm font-medium text-stone-400">
+            <a href="#service" className="hover:text-white transition-colors">서비스</a>
+            <a href="#intro" className="hover:text-white transition-colors">소개</a>
+            <a href="#download" className="hover:text-white transition-colors">다운로드</a>
+          </nav>
+        </div>
+      </header>
+
+      {/*중앙 정렬*/}
+      <main className="flex-1 flex items-center justify-center px-4 pb-12">
+        <div className="flex items-center gap-8 relative max-w-4xl w-full justify-center">
+          
+          {/* 왼쪽 PASS 버튼 */}
+          <button
+            className="
+              w-16 h-16
+              rounded-full
+              bg-stone-900/80
+              border border-stone-800
+              shadow-xl
+              flex items-center justify-center
+              text-xl
+              text-stone-400
+              transition-all duration-300
+              hover:bg-stone-800
+              hover:text-white
+              hover:scale-110
+              active:scale-95
+              backdrop-blur-md
+            "
+          >
+            ←
+          </button>
+
+          {/* 중앙 프로필 카드 */}
+          <div
+            className="
+              relative
+              w-[400px]
+              h-[680px]
+              rounded-3xl
+              overflow-hidden
+              bg-white
+              border border-white/10
+              shadow-[0_0_50px_rgba(0,0,0,0.8)]
+              transition-all duration-300
+              hover:scale-[1.01]
+            "
+          >
+            {/* 프로필 이미지 */}
+            <img
+              src="https://images.unsplash.com/photo-1511367461989-f85a21fda167?q=80&w=1200&auto=format&fit=crop"
+              alt="profile"
+              className="w-full h-full object-cover"
+            />
+
+            {/* 하단 정보 플레이트 */}
+            <div
+              className="
+                absolute bottom-0 left-0 right-0
+                p-6
+                bg-black/40
+                backdrop-blur-xl
+                border-t border-white/10
+              "
+            >
+              <h2 className="text-3xl font-extrabold text-white tracking-tight">
+                김도건
+              </h2>
+
+              <p className="text-stone-200 mt-1.5 text-sm font-medium">
+                Diamond 2 · 84LP · KR · 20세 · JUG
+              </p>
+
+              <p className="text-stone-300 mt-2 text-sm">
+                듀오 구함
+              </p>
+
+              {/* 별점 */}
+              <div
+                className="
+                  mt-4
+                  inline-flex
+                  items-center
+                  gap-2
+                  px-4 py-2
+                  rounded-xl
+                  bg-stone-900/80
+                  backdrop-blur-md
+                  border border-stone-800
+                "
+              >
+                <span className="text-yellow-500 text-sm">
+                  ★★★★
+                </span>
+                <span className="text-stone-300 text-xs font-semibold">
+                  4.0 (24)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 오른쪽 LIKE 버튼 */}
+          <button
+            className="
+              w-16 h-16
+              rounded-full
+              bg-violet-600
+              shadow-xl
+              flex items-center justify-center
+              text-xl
+              text-white
+              transition-all duration-300
+              hover:bg-violet-500
+              hover:scale-110
+              active:scale-95
+              shadow-violet-950/50
+            "
+          >
+            →
+          </button>
+
+        </div>
+      </main>
+
+    </div>
+  );
+}
