@@ -18,11 +18,13 @@ const USER_FIELDS = [
 
 function pickUserFields(body) {
   const data = {};
+
   for (const field of USER_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
       data[field] = body[field];
     }
   }
+
   return data;
 }
 
@@ -42,6 +44,7 @@ function validateUserData(data, existing = {}) {
   }
 
   const finalLine = 'line' in data ? data.line : existing.line;
+
   const finalSubLine =
     'sub_line' in data ? data.sub_line : existing.sub_line;
 
@@ -58,7 +61,9 @@ function validateUserData(data, existing = {}) {
     data.duo_style != null &&
     !DUO_STYLES.includes(data.duo_style)
   ) {
-    errors.push(`duo_style은 ${DUO_STYLES.join(', ')} 중 하나여야 합니다.`);
+    errors.push(
+      `duo_style은 ${DUO_STYLES.join(', ')} 중 하나여야 합니다.`
+    );
   }
 
   return errors;
@@ -68,103 +73,165 @@ async function getUserById(id) {
   return get('SELECT * FROM users WHERE id = ?', [id]);
 }
 
-// GET /users
+// 전체 유저 조회
 router.get('/', async (req, res) => {
   try {
-    const users = await all('SELECT * FROM users ORDER BY id');
+    const users = await all(`
+      SELECT * FROM users
+      ORDER BY id
+    `);
+
     res.json(users);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
-// GET /users/:id
+// 특정 유저 조회
 router.get('/:id', async (req, res) => {
   try {
     const user = await getUserById(req.params.id);
+
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        error: 'User not found'
+      });
     }
+
     res.json(user);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
-// POST /users
+// 유저 생성
 router.post('/', async (req, res) => {
   try {
     const data = pickUserFields(req.body);
+
     const columns = Object.keys(data);
 
     if (columns.length === 0) {
-      return res.status(400).json({ error: 'No valid fields provided' });
+      return res.status(400).json({
+        error: 'No valid fields provided'
+      });
     }
 
     const errors = validateUserData(data);
+
     if (errors.length > 0) {
-      return res.status(400).json({ error: errors.join(' ') });
+      return res.status(400).json({
+        error: errors.join(' ')
+      });
     }
 
     const placeholders = columns.map(() => '?').join(', ');
+
     const values = columns.map((col) => data[col] ?? null);
+
     const result = await run(
-      `INSERT INTO users (${columns.join(', ')}) VALUES (${placeholders})`,
+      `INSERT INTO users (${columns.join(', ')})
+       VALUES (${placeholders})`,
       values
     );
 
     const user = await getUserById(result.lastID);
+
     res.status(201).json(user);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
-// PUT /users/:id
+// 유저 수정
 router.put('/:id', async (req, res) => {
   try {
     const existing = await getUserById(req.params.id);
+
     if (!existing) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        error: 'User not found'
+      });
     }
 
     const data = pickUserFields(req.body);
+
     const columns = Object.keys(data);
 
     if (columns.length === 0) {
-      return res.status(400).json({ error: 'No valid fields provided' });
+      return res.status(400).json({
+        error: 'No valid fields provided'
+      });
     }
 
     const errors = validateUserData(data, existing);
+
     if (errors.length > 0) {
-      return res.status(400).json({ error: errors.join(' ') });
+      return res.status(400).json({
+        error: errors.join(' ')
+      });
     }
 
-    const assignments = columns.map((col) => `${col} = ?`).join(', ');
+    const assignments = columns
+      .map((col) => `${col} = ?`)
+      .join(', ');
+
     const values = columns.map((col) => data[col] ?? null);
+
     values.push(req.params.id);
 
-    await run(`UPDATE users SET ${assignments} WHERE id = ?`, values);
+    await run(
+      `UPDATE users
+       SET ${assignments}
+       WHERE id = ?`,
+      values
+    );
 
-    const user = await getUserById(req.params.id);
-    res.json(user);
+    const updatedUser = await getUserById(req.params.id);
+
+    res.json(updatedUser);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
-// DELETE /users/:id
+// 유저 삭제
 router.delete('/:id', async (req, res) => {
   try {
     const existing = await getUserById(req.params.id);
+
     if (!existing) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({
+        error: 'User not found'
+      });
     }
 
-    await run('DELETE FROM users WHERE id = ?', [req.params.id]);
-    res.json({ message: 'User deleted', id: Number(req.params.id) });
+    await run(
+      'DELETE FROM users WHERE id = ?',
+      [req.params.id]
+    );
+
+    res.json({
+      message: 'User deleted',
+      id: Number(req.params.id)
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
