@@ -5,9 +5,8 @@ import { Bell, ChevronRight, Home, MessageCircle, User, Star } from 'lucide-reac
 const MyPage = () => {
   const navigate = useNavigate();
 
-  // 💡 테스트용 데이터: 이 글씨를 'Emerald 2', 'Gold 1' 등으로 바꿔보세요!
   const currentTier = "Challenger"; 
-  
+
   // 💡 티어 이름에 따라 알맞은 색상(Tailwind 클래스)을 꺼내주는 규칙표입니다.
   const getTierColor = (tier) => {
     const lowerTier = tier.toLowerCase();
