@@ -1,8 +1,16 @@
 const DEFAULT_AVATAR =
   'https://api.dicebear.com/7.x/avataaars/svg?seed=duo-default';
 
+// dev: .env.development → http://127.0.0.1:3000 (proxy 502 회피)
+// prod: 빈 값 → 동일 오리진 또는 리버스 프록시의 /users
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+
+function apiUrl(path) {
+  return `${API_BASE}${path}`;
+}
+
 export async function fetchUsers() {
-  const res = await fetch('/users');
+  const res = await fetch(apiUrl('/users'));
 
   if (!res.ok) {
     throw new Error(`유저 목록 조회 실패 (status ${res.status})`);
@@ -12,7 +20,7 @@ export async function fetchUsers() {
 }
 
 export async function fetchUserById(id) {
-  const res = await fetch(`/users/${id}`);
+  const res = await fetch(apiUrl(`/users/${id}`));
 
   if (!res.ok) {
     throw new Error(`유저 조회 실패 (status ${res.status})`);
