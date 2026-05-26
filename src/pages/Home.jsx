@@ -1,77 +1,78 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchUsers, toProfile } from '../api/users';
 
-const PROFILES = [
-  {
-    id: 1,
-    name: '김도건',
-    rank: 'Diamond 2 · 84LP · KR · 20세 · JUG',
-    msg: '듀오 구함',
-    img: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?q=80&w=1200&auto=format&fit=crop'
-  },
-  {
-    id: 2,
-    name: '이수아',
-    rank: 'Master · 12LP · KR · 22세 · MID',
-    msg: '즐겜 유저 환영합니다!',
-    img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop'
-  },
-  {
-    id: 3,
-    name: '박지훈',
-    rank: 'Platinum 1 · 50LP · KR · 19세 · ADC',
-    msg: '빡겜 고수 구해요',
-    img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1200&auto=format&fit=crop'
-  },
-  {
-    id: 4,
-    name: '최민서',
-    rank: 'Challenger · 890LP · KR · 24세 · TOP',
-    msg: '상체 터트려드립니다',
-    img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1200&auto=format&fit=crop'
-  },
-  {
-    id: 5,
-    name: '한지원',
-    rank: 'Grandmaster · 420LP · KR · 21세 · SUP',
-    msg: '혜지 아님 숟가락 구함',
-    img: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=1200&auto=format&fit=crop'
-  }
-];
+function renderStars(rating) {
+  const safe = Math.max(0, Math.min(5, Math.round(rating)));
+  return '★★★★★'.slice(0, safe) + '☆☆☆☆☆'.slice(0, 5 - safe);
+}
 
 export default function Home() {
+  const [profiles, setProfiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [vAnimState, setVAnimState] = useState('');
 
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const users = await fetchUsers();
+
+        if (cancelled) return;
+
+        setProfiles(users.map(toProfile));
+        setCurrentIndex(0);
+
+      } catch (err) {
+        if (cancelled) return;
+        setError(err.message || '알 수 없는 오류');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const profileCount = profiles.length;
+
   const nextSlide = () => {
-    if (vAnimState !== '') return;
-    setCurrentIndex((prev) => (prev + 1) % PROFILES.length);
+    if (vAnimState !== '' || profileCount === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % profileCount);
   };
 
   const prevSlide = () => {
-    if (vAnimState !== '') return;
-    setCurrentIndex((prev) => (prev - 1 + PROFILES.length) % PROFILES.length);
+    if (vAnimState !== '' || profileCount === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + profileCount) % profileCount);
   };
 
   const handleVButtonClick = () => {
-    if (vAnimState !== '') return;
+    if (vAnimState !== '' || profileCount === 0) return;
     setVAnimState('zoom');
     setTimeout(() => {
       setVAnimState('fly-right');
       setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % PROFILES.length);
+        setCurrentIndex((prev) => (prev + 1) % profileCount);
         setVAnimState('');
       }, 500);
     }, 200);
   };
 
   const handleXButtonClick = () => {
-    if (vAnimState !== '') return;
-    setCurrentIndex((prev) => (prev + 1) % PROFILES.length);
+    if (vAnimState !== '' || profileCount === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % profileCount);
   };
 
   const getCardStyles = (index) => {
     let diff = index - currentIndex;
-    const len = PROFILES.length;
+    const len = profileCount;
 
     if (diff < -Math.floor(len / 2)) diff += len;
     if (diff > Math.floor(len / 2)) diff -= len;
@@ -208,7 +209,26 @@ export default function Home() {
 
             {/* 회전초밥용 absolute 컨테이너 */}
             <div className="relative w-[400px] h-[680px] flex items-center justify-center">
-              {PROFILES.map((profile, index) => (
+              {loading && (
+                <div className="text-stone-400 text-sm">
+                  유저 정보를 불러오는 중...
+                </div>
+              )}
+
+              {!loading && error && (
+                <div className="text-red-400 text-sm text-center px-6">
+                  유저 정보를 불러오지 못했어요.<br />
+                  <span className="text-stone-500 text-xs">{error}</span>
+                </div>
+              )}
+
+              {!loading && !error && profileCount === 0 && (
+                <div className="text-stone-400 text-sm">
+                  표시할 유저가 없어요.
+                </div>
+              )}
+
+              {!loading && !error && profiles.map((profile, index) => (
                 <div
                   key={profile.id}
                   className={`
@@ -224,8 +244,10 @@ export default function Home() {
                     <p className="text-stone-200 mt-1.5 text-sm font-medium">{profile.rank}</p>
                     <p className="text-stone-300 mt-2 text-sm">{profile.msg}</p>
                     <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-950/80 border border-stone-800">
-                      <span className="text-yellow-500 text-sm">★★★★</span>
-                      <span className="text-stone-300 text-xs font-semibold">4.0 (24)</span>
+                      <span className="text-yellow-500 text-sm">{renderStars(profile.rating)}</span>
+                      <span className="text-stone-300 text-xs font-semibold">
+                        {profile.rating.toFixed(1)} ({profile.ratingCount})
+                      </span>
                     </div>
                   </div>
                 </div>

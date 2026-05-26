@@ -8,6 +8,10 @@ export default defineConfig({
     proxy: {
       '/users': 'http://localhost:3000',
       '/health': 'http://localhost:3000',
+      '/chats': 'http://localhost:3000',
+      '/reports': 'http://localhost:3000',
+      '/matches': 'http://localhost:3000',
+      '/ratings': 'http://localhost:3000',
     },
   },
 })
