@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, MessageCircle } from 'lucide-react';
+import {
+  X,
+  MessageCircle,
+  Home as HomeIcon,
+  User
+} from 'lucide-react';
+
 import { fetchUsers, toProfile } from '../api/users';
 
 function renderStars(rating) {
@@ -97,38 +103,38 @@ export default function Home() {
         const isMatched = likedMeUserIds.includes(Number(currentProfile.id));
 
         if (isMatched) {
-  setMatchedProfile(currentProfile);
+          setMatchedProfile(currentProfile);
 
-  const existingChats =
-    JSON.parse(localStorage.getItem('activeChats')) || [];
+          const existingChats =
+            JSON.parse(localStorage.getItem('activeChats')) || [];
 
-  const alreadyExists = existingChats.some(
-    (chat) => Number(chat.userId) === Number(currentProfile.id)
-  );
+          const alreadyExists = existingChats.some(
+            (chat) => Number(chat.userId) === Number(currentProfile.id)
+          );
 
-  if (!alreadyExists) {
-    const newChat = {
-      id: Date.now(),
-      userId: currentProfile.id,
-      name: currentProfile.name,
-      tag: 'KR1',
-      img: currentProfile.img,
-      createdAt: new Date().toLocaleString('ko-KR'),
-      messages: [
-        {
-          id: 1,
-          sender: 'other',
-          text: '안녕하세요! 같이 듀오해요 😄'
+          if (!alreadyExists) {
+            const newChat = {
+              id: Date.now(),
+              userId: currentProfile.id,
+              name: currentProfile.name,
+              tag: 'KR1',
+              img: currentProfile.img,
+              createdAt: new Date().toLocaleString('ko-KR'),
+              messages: [
+                {
+                  id: 1,
+                  sender: 'other',
+                  text: '안녕하세요! 같이 듀오해요 😄'
+                }
+              ]
+            };
+
+            localStorage.setItem(
+              'activeChats',
+              JSON.stringify([newChat, ...existingChats])
+            );
+          }
         }
-      ]
-    };
-
-    localStorage.setItem(
-      'activeChats',
-      JSON.stringify([newChat, ...existingChats])
-    );
-  }
-}
 
         addRemovedId(currentProfile.id);
 
@@ -193,6 +199,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#05030d] text-white flex flex-col relative overflow-hidden">
+
+      {/* 파도 Flow 배경 */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <style>{`
           @keyframes wave-stream-horizontal {
@@ -238,6 +246,7 @@ export default function Home() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[30vh] rounded-full bg-purple-500/5 blur-[160px]" />
       </div>
 
+      {/* 네비게이션 바 */}
       <header className="w-full max-w-[90%] xl:max-w-[1440px] mx-auto px-4 md:px-8 py-6 flex items-center justify-between z-50">
         <button
           onClick={() => window.location.reload()}
@@ -246,16 +255,27 @@ export default function Home() {
           FInd DUO
         </button>
 
-        <button
-          onClick={() => navigate('/mypage')}
-          className="px-6 py-2 text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300"
-        >
-          마이페이지
-        </button>
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => navigate('/my-chats')}
+            className="text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300"
+          >
+            채팅방
+          </button>
+
+          <button
+            onClick={() => navigate('/mypage')}
+            className="px-6 py-2 text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300"
+          >
+            마이페이지
+          </button>
+        </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-4 pb-12 select-none z-10">
+      {/* 메인 */}
+      <main className="flex-1 flex items-center justify-center px-4 pb-28 select-none z-10">
         <div className="flex items-center gap-16 relative max-w-6xl w-full justify-center">
+
           <button
             onClick={prevSlide}
             className="w-20 h-20 rounded-full bg-stone-950/40 border border-purple-500/20 flex items-center justify-center text-4xl text-stone-400 hover:text-white hover:scale-110 transition-all z-40"
@@ -353,6 +373,68 @@ export default function Home() {
         </div>
       </main>
 
+      {/* 하단 네비 */}
+      <nav
+        className="
+          fixed bottom-0 left-0 right-0
+          bg-black/50
+          backdrop-blur-2xl
+          border-t border-purple-500/10
+          z-40
+        "
+      >
+        <div
+          className="
+            max-w-6xl mx-auto
+            flex justify-center items-center
+            gap-24
+            py-5
+          "
+        >
+          <button
+            onClick={() => navigate('/')}
+            className="
+              flex flex-col items-center gap-1
+              text-violet-400 scale-110
+            "
+          >
+            <HomeIcon size={26} />
+            <span className="text-xs font-bold">
+              홈
+            </span>
+          </button>
+
+          <button
+            onClick={() => navigate('/my-chats')}
+            className="
+              flex flex-col items-center gap-1
+              text-stone-500 hover:text-white
+              transition-all duration-300
+            "
+          >
+            <MessageCircle size={26} />
+            <span className="text-xs font-medium">
+              채팅
+            </span>
+          </button>
+
+          <button
+            onClick={() => navigate('/mypage')}
+            className="
+              flex flex-col items-center gap-1
+              text-stone-500 hover:text-white
+              transition-all duration-300
+            "
+          >
+            <User size={26} />
+            <span className="text-xs font-medium">
+              마이페이지
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      {/* 매칭 성공 모달 */}
       {matchedProfile && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md px-4">
           <div className="relative w-full max-w-md bg-[#12091f] border border-violet-500/20 rounded-[32px] p-8 text-center shadow-[0_0_80px_rgba(124,58,237,0.45)]">
@@ -410,6 +492,7 @@ export default function Home() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

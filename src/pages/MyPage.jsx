@@ -8,7 +8,7 @@ import {
   User,
   Star,
   X,
- History
+  History
 } from 'lucide-react';
 
 import { fetchUserById } from '../api/users';
@@ -31,6 +31,44 @@ const MyPage = () => {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isProfileModalOpen) {
+        setIsProfileModalOpen(false);
+
+        window.history.pushState(
+          null,
+          '',
+          window.location.pathname
+        );
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isProfileModalOpen]);
+
+  const openProfileModal = () => {
+    window.history.pushState(
+      { profileModal: true },
+      '',
+      window.location.pathname
+    );
+
+    setIsProfileModalOpen(true);
+  };
+
+  const closeProfileModal = () => {
+    setIsProfileModalOpen(false);
+
+    if (window.history.state?.profileModal) {
+      window.history.back();
+    }
+  };
 
   const getTierColor = (tier) => {
     if (!tier) return 'text-stone-500';
@@ -153,7 +191,7 @@ const MyPage = () => {
 
             {/* 프로필 카드 */}
             <section
-              onClick={() => setIsProfileModalOpen(true)}
+              onClick={openProfileModal}
               className="
                 bg-stone-950/40
                 backdrop-blur-2xl
@@ -383,14 +421,15 @@ const MyPage = () => {
                 title="나의 채팅방"
                 onClick={() => navigate('/my-chats')}
               />
-            </div>
 
               <MenuButton
                 title="로그아웃"
                 isLogout
                 onClick={handleLogout}
               />
-             
+
+            </div>
+
           </div>
 
         </div>
@@ -407,7 +446,7 @@ const MyPage = () => {
             backdrop-blur-sm
             p-4
           "
-          onClick={() => setIsProfileModalOpen(false)}
+          onClick={closeProfileModal}
         >
 
           <div
@@ -429,7 +468,7 @@ const MyPage = () => {
               </h3>
 
               <button
-                onClick={() => setIsProfileModalOpen(false)}
+                onClick={closeProfileModal}
                 className="
                   p-3 rounded-full
                   bg-black/30
@@ -468,6 +507,11 @@ const MyPage = () => {
             <button
               onClick={() => {
                 setIsProfileModalOpen(false);
+
+                if (window.history.state?.profileModal) {
+                  window.history.back();
+                }
+
                 navigate('/edit-profile');
               }}
               className="
@@ -524,7 +568,7 @@ const MyPage = () => {
           </button>
 
           <button
-            onClick={() => alert('채팅 기능은 준비 중입니다!')}
+            onClick={() => navigate('/my-chats')}
             className="
               flex flex-col items-center gap-1
               text-stone-500 hover:text-white

@@ -15,13 +15,24 @@ export default function MyChats() {
 
   useEffect(() => {
     const activeChats =
-        JSON.parse(localStorage.getItem('activeChats')) || [];
+      JSON.parse(localStorage.getItem('activeChats')) || [];
 
     const endedChats =
-        JSON.parse(localStorage.getItem('chatHistory')) || [];
+      JSON.parse(localStorage.getItem('chatHistory')) || [];
 
-        setChatHistory([...activeChats, ...endedChats]);
+    setChatHistory([...activeChats, ...endedChats]);
   }, []);
+
+  const handleOpenChat = (chat) => {
+    localStorage.removeItem('currentMatch');
+
+    localStorage.setItem(
+      'selectedChat',
+      JSON.stringify(chat)
+    );
+
+    navigate('/chat', { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-[#05030d] text-white relative overflow-hidden">
@@ -44,7 +55,13 @@ export default function MyChats() {
       ">
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            localStorage.removeItem('selectedChat');
+
+            navigate('/mypage', {
+              replace: true
+            });
+          }}
           className="
             p-2 rounded-full
             hover:bg-white/10
@@ -142,11 +159,11 @@ export default function MyChats() {
                   ">
                     <Clock size={15} />
 
-                    {chat.endedAt}
+                    {chat.endedAt || chat.createdAt || '진행 중'}
                   </div>
 
                   <p className="text-sm text-stone-500 mt-2">
-                    메시지 {chat.messages.length}개
+                    메시지 {chat.messages?.length || 0}개
                   </p>
 
                 </div>
@@ -154,14 +171,7 @@ export default function MyChats() {
               </div>
 
               <button
-                onClick={() => {
-                  localStorage.setItem(
-                    'selectedChat',
-                    JSON.stringify(chat)
-                  );
-
-                  navigate('/chat');
-                }}
+                onClick={() => handleOpenChat(chat)}
                 className="
                   px-5 py-3 rounded-2xl
                   bg-violet-600 hover:bg-violet-500
