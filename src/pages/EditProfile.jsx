@@ -1,49 +1,78 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Camera, ChevronDown } from 'lucide-react';
+import {
+  ArrowLeft,
+  Camera,
+  ChevronDown
+} from 'lucide-react';
+
 import { useNavigate } from 'react-router-dom';
-import { fetchUserById, updateUser } from '../api/users'; // 💡 API 도구 불러오기!
+import { fetchUserById, updateUser } from '../api/users';
 
 const EditProfile = () => {
   const navigate = useNavigate();
-  
+
   const [nickname, setNickname] = useState('');
   const [tag, setTag] = useState('KR1');
   const [bio, setBio] = useState('');
-  const [profileImage, setProfileImage] = useState('https://i.namu.wiki/i/EZNaF5XmAKKF4LgVE_D0sBSaH1aalphJ5BDr9uGBLqiuxwyzTZygUkCPgTOAhqyn6wBRonLpdkxSQ_EWxfrER-JzvuFbc6m8TjEQXM-ERJzvyTcGPcNlJj3KoxBFHvEfESfntDdLIP_Vu1pWadJUQg.webp');
+
+  const [profileImage, setProfileImage] = useState(
+    'https://i.namu.wiki/i/EZNaF5XmAKKF4LgVE_D0sBSaH1aalphJ5BDr9uGBLqiuxwyzTZygUkCPgTOAhqyn6wBRonLpdkxSQ_EWxfrER-JzvuFbc6m8TjEQXM-ERJzvyTcGPcNlJj3KoxBFHvEfESfntDdLIP_Vu1pWadJUQg.webp'
+  );
 
   const [tier, setTier] = useState('Challenger');
-  const [isTierOpen, setIsTierOpen] = useState(false); 
-  
+  const [isTierOpen, setIsTierOpen] = useState(false);
+
   const [gameMode, setGameMode] = useState('랭크');
   const [lane, setLane] = useState('미드');
   const [playStyle, setPlayStyle] = useState('빡겜 유저');
 
-  const tierList = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger'];
+  const tierList = [
+    'Iron',
+    'Bronze',
+    'Silver',
+    'Gold',
+    'Platinum',
+    'Emerald',
+    'Diamond',
+    'Master',
+    'Grandmaster',
+    'Challenger'
+  ];
+
   const gameModes = ['일반', '랭크', '칼바람'];
   const lanes = ['탑', '정글', '미드', '바텀', '서폿'];
-  const playStyles = ['빡겜 유저', '즐겜 유저', '상대방한테 맞춰요'];
+
+  const playStyles = [
+    '빡겜 유저',
+    '즐겜 유저',
+    '상대방한테 맞춰요'
+  ];
+
   const fileInputRef = useRef(null);
 
-  // 💡 화면이 켜질 때 백엔드에서 기존 1번 유저의 진짜 데이터를 불러옵니다.
   useEffect(() => {
     const loadData = async () => {
       try {
-        const data = await fetchUserById(1); // 아직 로그인이 없으므로 임시로 1번 유저 고정
+        const data = await fetchUserById(1);
+
         setNickname(data.nickname || '');
         setTier(data.tier || 'Challenger');
         setLane(data.line || '미드');
         setBio(data.intro || '');
-        setPlayStyle(data.duo_style || '빡겜');
+        setPlayStyle(data.duo_style || '빡겜 유저');
         setGameMode(data.game_mode || '랭크');
+
       } catch (error) {
-        console.error("데이터를 불러오지 못했습니다.", error);
+        console.error('데이터를 불러오지 못했습니다.', error);
       }
     };
+
     loadData();
   }, []);
 
   const getTierColor = (t) => {
     const lower = t.toLowerCase();
+
     if (lower === 'iron') return 'text-stone-500';
     if (lower === 'bronze') return 'text-amber-700';
     if (lower === 'silver') return 'text-slate-400';
@@ -53,28 +82,44 @@ const EditProfile = () => {
     if (lower === 'diamond') return 'text-blue-500';
     if (lower === 'master') return 'text-purple-500';
     if (lower === 'grandmaster') return 'text-red-500';
-    if (lower === 'challenger') return 'bg-gradient-to-r from-cyan-500 via-yellow-500 to-amber-500 text-transparent bg-clip-text font-black tracking-tight';
-    return 'text-stone-500'; 
+
+    if (lower === 'challenger') {
+      return `
+        bg-gradient-to-r
+        from-cyan-500
+        via-yellow-500
+        to-amber-500
+        text-transparent
+        bg-clip-text
+        font-black
+      `;
+    }
+
+    return 'text-stone-500';
   };
 
-  const handleCameraClick = () => fileInputRef.current.click();
+  const handleCameraClick = () => {
+    fileInputRef.current.click();
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) setProfileImage(URL.createObjectURL(file));
+
+    if (file) {
+      setProfileImage(URL.createObjectURL(file));
+    }
   };
 
-  // 💡 진짜 백엔드로 데이터를 전송하는 저장 로직!
   const handleSave = async () => {
     if (nickname.trim() === '' || tag.trim() === '') {
-      alert("닉네임과 태그를 모두 입력해 주세요!");
+      alert('닉네임과 태그를 모두 입력해 주세요!');
       return;
     }
 
     try {
       const updateData = {
-        nickname: nickname,
-        tier: tier,
+        nickname,
+        tier,
         line: lane,
         intro: bio,
         duo_style: playStyle,
@@ -82,96 +127,445 @@ const EditProfile = () => {
       };
 
       await updateUser(1, updateData);
-      
-      alert("DB에 프로필이 성공적으로 저장되었습니다! 🎉");
+
+      alert('DB에 프로필이 성공적으로 저장되었습니다! 🎉');
+
       navigate(-1);
+
     } catch (error) {
-      // 💡 여기서 백엔드의 진짜 에러 이유를 팝업창으로 보여줍니다!
       alert(`저장 실패 이유: ${error.message}`);
     }
   };
 
-  const renderSelectionButtons = (options, state, setState) => (
-    <div className="flex flex-wrap gap-2 mt-2">
+  const renderSelectionButtons = (
+    options,
+    state,
+    setState
+  ) => (
+    <div className="flex flex-wrap gap-3 mt-3">
+
       {options.map((opt) => (
+
         <button
           key={opt}
           onClick={() => setState(opt)}
-          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-            state === opt 
-              ? 'bg-violet-500 text-white shadow-md scale-105' 
-              : 'bg-white border border-stone-200 text-stone-500 hover:bg-stone-50'
-          }`}
+          className={`
+            px-5 py-3 rounded-2xl
+            text-sm font-black
+            transition-all duration-300
+
+            ${
+              state === opt
+                ? `
+                  bg-violet-600/80
+                  text-white
+                  border border-violet-400/20
+                  shadow-[0_0_25px_rgba(124,58,237,0.35)]
+                  scale-105
+                `
+                : `
+                  bg-stone-950/40
+                  border border-purple-500/10
+                  text-stone-400
+                  hover:bg-stone-900/60
+                  hover:text-white
+                `
+            }
+          `}
         >
           {opt}
         </button>
+
       ))}
+
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-stone-100 font-sans text-stone-900 max-w-md mx-auto relative pb-24">
-      <header className="flex items-center justify-between px-5 py-6 bg-white/50 backdrop-blur-md sticky top-0 z-10 border-b border-stone-200/50">
-        <div className="flex items-center space-x-2">
-          <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-stone-500 hover:bg-white rounded-full transition-all duration-300"><ArrowLeft size={24} /></button>
-          <h1 className="text-xl font-extrabold tracking-tight text-stone-900">프로필 수정</h1>
+    <div className="min-h-screen bg-[#05030d] text-white relative overflow-hidden">
+
+      {/* 배경 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+
+        <div
+          className="
+            absolute top-[10%] -right-[10%]
+            w-[40vw] h-[40vh]
+            rounded-full
+            bg-violet-600/20
+            blur-[120px]
+          "
+        />
+
+        <div
+          className="
+            absolute bottom-[0%] -left-[10%]
+            w-[40vw] h-[40vh]
+            rounded-full
+            bg-fuchsia-600/10
+            blur-[120px]
+          "
+        />
+
+      </div>
+
+      {/* Header */}
+      <header
+        className="
+          relative z-20
+          max-w-5xl mx-auto
+          px-6 py-8
+          flex items-center justify-between
+        "
+      >
+
+        <div className="flex items-center gap-4">
+
+          <button
+            onClick={() => navigate(-1)}
+            className="
+              p-3 rounded-full
+              bg-stone-950/40
+              border border-purple-500/10
+              text-stone-400
+              hover:text-white
+              hover:bg-stone-900/60
+              transition-all duration-300
+            "
+          >
+            <ArrowLeft size={22} />
+          </button>
+
+          <div>
+
+            <h1 className="text-3xl font-black tracking-tight">
+              프로필 수정
+            </h1>
+
+            <p className="text-stone-500 text-sm mt-1">
+              나만의 듀오 프로필을 꾸며보세요
+            </p>
+
+          </div>
+
         </div>
+
       </header>
 
-      <main className="px-5 space-y-8 mt-6">
-        <section className="flex flex-col items-center">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-stone-200 overflow-hidden shadow-md">
-              <img src={profileImage} alt="프로필" className="w-full h-full object-cover" />
-            </div>
-            <button onClick={handleCameraClick} className="absolute bottom-0 right-0 p-2.5 bg-white rounded-full shadow-lg border border-stone-100 text-stone-700 hover:text-violet-500"><Camera size={18} /></button>
-            <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageChange} />
-          </div>
-        </section>
+      {/* Main */}
+      <main className="relative z-10 max-w-5xl mx-auto px-6 pb-24">
 
-        <section className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-extrabold text-stone-800 ml-1">닉네임 및 라이엇 태그</label>
-            <div className="flex gap-2">
-              <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-2/3 bg-white border border-stone-200 rounded-2xl px-4 py-3.5 focus:ring-2 focus:ring-violet-400 outline-none font-medium" />
-              <div className="relative w-1/3">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">#</span>
-                <input type="text" value={tag} onChange={(e) => setTag(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-2xl pl-7 pr-3 py-3.5 focus:ring-2 focus:ring-violet-400 outline-none font-bold uppercase" />
+        <div
+          className="
+            bg-stone-950/40
+            backdrop-blur-2xl
+            border border-purple-500/10
+            rounded-[36px]
+            p-8 md:p-10
+            shadow-[0_0_50px_rgba(0,0,0,0.4)]
+          "
+        >
+
+          {/* 프로필 이미지 */}
+          <section className="flex flex-col items-center mb-12">
+
+            <div className="relative">
+
+              <div
+                className="
+                  w-36 h-36 rounded-full overflow-hidden
+                  border border-white/10
+                  shadow-[0_0_35px_rgba(124,58,237,0.25)]
+                "
+              >
+
+                <img
+                  src={profileImage}
+                  alt="프로필"
+                  className="w-full h-full object-cover"
+                />
+
               </div>
+
+              <button
+                onClick={handleCameraClick}
+                className="
+                  absolute bottom-1 right-1
+                  p-3 rounded-full
+                  bg-violet-600
+                  text-white
+                  shadow-[0_0_25px_rgba(124,58,237,0.4)]
+                  hover:bg-violet-500
+                  transition-all duration-300
+                "
+              >
+                <Camera size={18} />
+              </button>
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+              />
+
             </div>
-          </div>
 
-          <div className="space-y-2 relative">
-            <label className="text-sm font-extrabold text-stone-800 ml-1">현재 티어</label>
-            <div onClick={() => setIsTierOpen(!isTierOpen)} className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex justify-between items-center cursor-pointer hover:border-violet-300 transition-colors">
-              <span className={`font-extrabold text-lg ${getTierColor(tier)}`}>{tier}</span>
-              <ChevronDown size={20} className={`text-stone-400 transition-transform duration-300 ${isTierOpen ? 'rotate-180' : ''}`} />
+          </section>
+
+          {/* 입력 영역 */}
+          <section className="space-y-8">
+
+            {/* 닉네임 */}
+            <div>
+
+              <label className="text-sm font-black text-stone-300">
+                닉네임 및 라이엇 태그
+              </label>
+
+              <div className="flex gap-3 mt-3">
+
+                <input
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  className="
+                    flex-1
+                    bg-black/30
+                    border border-white/5
+                    rounded-2xl
+                    px-5 py-4
+                    text-white
+                    outline-none
+                    focus:border-violet-500/40
+                    focus:bg-black/50
+                    transition-all duration-300
+                  "
+                />
+
+                <div className="relative w-32">
+
+                  <span
+                    className="
+                      absolute left-4 top-1/2
+                      -translate-y-1/2
+                      text-stone-500 font-black
+                    "
+                  >
+                    #
+                  </span>
+
+                  <input
+                    type="text"
+                    value={tag}
+                    onChange={(e) => setTag(e.target.value)}
+                    className="
+                      w-full
+                      bg-black/30
+                      border border-white/5
+                      rounded-2xl
+                      pl-8 pr-4 py-4
+                      text-white
+                      outline-none
+                      uppercase
+                      font-black
+                      focus:border-violet-500/40
+                    "
+                  />
+
+                </div>
+
+              </div>
+
             </div>
-            {isTierOpen && (
-              <ul className="absolute z-20 w-full mt-2 bg-white border border-stone-200 rounded-2xl shadow-xl max-h-56 overflow-y-auto overflow-hidden animate-in fade-in slide-in-from-top-2">
-                {tierList.map(t => (
-                  <li key={t} onClick={() => { setTier(t); setIsTierOpen(false); }} className="px-4 py-3.5 hover:bg-stone-50 cursor-pointer border-b border-stone-100 last:border-0">
-                    <span className={`font-extrabold text-base ${getTierColor(t)}`}>{t}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+
+            {/* 티어 */}
+            <div className="relative">
+
+              <label className="text-sm font-black text-stone-300">
+                현재 티어
+              </label>
+
+              <div
+                onClick={() => setIsTierOpen(!isTierOpen)}
+                className="
+                  mt-3
+                  bg-black/30
+                  border border-white/5
+                  rounded-2xl
+                  px-5 py-4
+                  flex items-center justify-between
+                  cursor-pointer
+                  hover:border-violet-500/30
+                  transition-all duration-300
+                "
+              >
+
+                <span className={`text-xl ${getTierColor(tier)}`}>
+                  {tier}
+                </span>
+
+                <ChevronDown
+                  size={22}
+                  className={`
+                    text-stone-500
+                    transition-transform duration-300
+                    ${isTierOpen ? 'rotate-180' : ''}
+                  `}
+                />
+
+              </div>
+
+              {isTierOpen && (
+
+                <ul
+                  className="
+                    absolute z-30
+                    w-full mt-3
+                    bg-[#12091f]
+                    border border-purple-500/10
+                    rounded-2xl
+                    overflow-hidden
+                    shadow-[0_0_40px_rgba(0,0,0,0.6)]
+                  "
+                >
+
+                  {tierList.map((t) => (
+
+                    <li
+                      key={t}
+                      onClick={() => {
+                        setTier(t);
+                        setIsTierOpen(false);
+                      }}
+                      className="
+                        px-5 py-4
+                        border-b border-white/5 last:border-0
+                        hover:bg-white/5
+                        cursor-pointer
+                        transition-all duration-200
+                      "
+                    >
+
+                      <span className={`font-black ${getTierColor(t)}`}>
+                        {t}
+                      </span>
+
+                    </li>
+
+                  ))}
+
+                </ul>
+
+              )}
+
+            </div>
+
+            {/* 게임 모드 */}
+            <div>
+
+              <label className="text-sm font-black text-stone-300">
+                주로 하는 모드
+              </label>
+
+              {renderSelectionButtons(
+                gameModes,
+                gameMode,
+                setGameMode
+              )}
+
+            </div>
+
+            {/* 포지션 */}
+            <div>
+
+              <label className="text-sm font-black text-stone-300">
+                주 포지션
+              </label>
+
+              {renderSelectionButtons(
+                lanes,
+                lane,
+                setLane
+              )}
+
+            </div>
+
+            {/* 스타일 */}
+            <div>
+
+              <label className="text-sm font-black text-stone-300">
+                게임 스타일
+              </label>
+
+              {renderSelectionButtons(
+                playStyles,
+                playStyle,
+                setPlayStyle
+              )}
+
+            </div>
+
+            {/* 소개 */}
+            <div>
+
+              <label className="text-sm font-black text-stone-300">
+                한줄 소개
+              </label>
+
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                className="
+                  mt-3
+                  w-full
+                  bg-black/30
+                  border border-white/5
+                  rounded-2xl
+                  px-5 py-4
+                  text-white
+                  resize-none
+                  outline-none
+                  leading-relaxed
+                  focus:border-violet-500/40
+                  focus:bg-black/50
+                  transition-all duration-300
+                "
+              />
+
+            </div>
+
+          </section>
+
+          {/* 저장 버튼 */}
+          <div className="mt-12">
+
+            <button
+              onClick={handleSave}
+              className="
+                w-full
+                bg-violet-600/80
+                hover:bg-violet-500
+                text-white
+                py-5
+                rounded-2xl
+                text-lg font-black
+                transition-all duration-300
+                shadow-[0_0_35px_rgba(124,58,237,0.35)]
+                active:scale-[0.98]
+              "
+            >
+              변경사항 저장하기
+            </button>
+
           </div>
 
-          <div className="space-y-1"><label className="text-sm font-extrabold text-stone-800 ml-1">주로 하는 모드</label>{renderSelectionButtons(gameModes, gameMode, setGameMode)}</div>
-          <div className="space-y-1"><label className="text-sm font-extrabold text-stone-800 ml-1">주 포지션</label>{renderSelectionButtons(lanes, lane, setLane)}</div>
-          <div className="space-y-1"><label className="text-sm font-extrabold text-stone-800 ml-1">게임 스타일</label>{renderSelectionButtons(playStyles, playStyle, setPlayStyle)}</div>
-
-          <div className="space-y-2 pt-2">
-            <label className="text-sm font-extrabold text-stone-800 ml-1">한줄 소개</label>
-            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 focus:ring-2 focus:ring-violet-400 outline-none resize-none font-medium leading-relaxed" />
-          </div>
-        </section>
-
-        <div className="pt-4 pb-8">
-          <button onClick={handleSave} className="w-full bg-stone-900 hover:bg-stone-800 text-white rounded-2xl shadow-lg transition-all duration-300 py-4 font-bold text-lg active:scale-[0.98]">변경사항 저장하기</button>
         </div>
+
       </main>
+
     </div>
   );
 };
