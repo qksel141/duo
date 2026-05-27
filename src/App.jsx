@@ -6,25 +6,28 @@ import MyPage from './pages/MyPage';
 import EditProfile from './pages/EditProfile';
 import MannerScoreDetail from './pages/MannerScoreDetail';
 import MatchHistory from './pages/MatchHistory';
+import Chat from './pages/Chat';
+import MyChats from './pages/MyChats';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 메인 페이지 */}
+
         <Route path="/" element={<Home />} />
 
-        {/* 마이페이지 */}
         <Route path="/mypage" element={<MyPage />} />
 
-        {/* 프로필 수정 */}
         <Route path="/edit-profile" element={<EditProfile />} />
 
-        {/* 매너점수 상세 */}
         <Route path="/manner-score" element={<MannerScoreDetail />} />
 
-        {/* 매칭 히스토리 */}
         <Route path="/match-history" element={<MatchHistory />} />
+
+        <Route path="/chat" element={<Chat />} />
+
+        <Route path="/my-chats" element={<MyChats />} />
+
       </Routes>
     </BrowserRouter>
   );

@@ -380,13 +380,17 @@ const MyPage = () => {
               />
 
               <MenuButton
+                title="나의 채팅방"
+                onClick={() => navigate('/my-chats')}
+              />
+            </div>
+
+              <MenuButton
                 title="로그아웃"
                 isLogout
                 onClick={handleLogout}
               />
-
-            </div>
-
+             
           </div>
 
         </div>
