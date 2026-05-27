@@ -3,54 +3,62 @@ import { ArrowLeft, Star, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createRating, fetchRatings } from '../api/users';
 
+const defaultHistory = [
+  { id: 2, name: '페이커', tag: 'T1', date: '오늘 14:30', rating: 0 },
+  { id: 3, name: '쵸비', tag: 'GEN', date: '어제 20:15', rating: 0 },
+  { id: 4, name: '데프트', tag: 'KT', date: '3일 전', rating: 0 },
+];
+
 const MatchHistory = () => {
   const navigate = useNavigate();
 
-  const [history, setHistory] = useState([
-    { id: 2, name: '페이커', tag: 'T1', date: '오늘 14:30', rating: 0 },
-    { id: 3, name: '쵸비', tag: 'GEN', date: '어제 20:15', rating: 0 },
-    { id: 4, name: '데프트', tag: 'KT', date: '3일 전', rating: 0 },
-  ]);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    const loadSavedRatings = async () => {
+    const loadHistory = async () => {
+      const savedHistory =
+        JSON.parse(localStorage.getItem('matchHistory')) || [];
+
+      const mergedHistory = [...savedHistory, ...defaultHistory];
+
       try {
         const savedRatings = await fetchRatings();
 
-        setHistory(prevHistory =>
-          prevHistory.map(match => {
-            const myRating = savedRatings.find(
-              r => r.from_user_id === 1 && r.to_user_id === match.id
-            );
+        const historyWithRatings = mergedHistory.map((match) => {
+          const myRating = savedRatings.find(
+            (r) => r.from_user_id === 1 && r.to_user_id === match.id
+          );
 
-            return myRating
-              ? { ...match, rating: myRating.score }
-              : match;
-          })
-        );
+          return myRating
+            ? { ...match, rating: myRating.score }
+            : match;
+        });
+
+        setHistory(historyWithRatings);
       } catch (error) {
-        console.error("별점 기록을 불러오지 못했습니다.", error);
+        console.error('별점 기록을 불러오지 못했습니다.', error);
+        setHistory(mergedHistory);
       }
     };
 
-    loadSavedRatings();
+    loadHistory();
   }, []);
 
   const handleStarClick = (matchId, newRating) => {
-    setHistory(prev =>
-      prev.map(m =>
-        m.id === matchId
-          ? { ...m, rating: newRating }
-          : m
+    setHistory((prev) =>
+      prev.map((match) =>
+        match.id === matchId
+          ? { ...match, rating: newRating }
+          : match
       )
     );
   };
 
   const handleSave = async () => {
-    const ratedMatches = history.filter(match => match.rating > 0);
+    const ratedMatches = history.filter((match) => match.rating > 0);
 
     if (ratedMatches.length === 0) {
-      alert("평가할 별점을 최소 1개 이상 선택해 주세요!");
+      alert('평가할 별점을 최소 1개 이상 선택해 주세요!');
       return;
     }
 
@@ -60,13 +68,12 @@ const MatchHistory = () => {
           from_user_id: 1,
           to_user_id: match.id,
           match_id: 100 + match.id,
-          score: match.rating
+          score: match.rating,
         });
       }
 
-      alert("별점 평가가 DB에 성공적으로 저장되었습니다! 🌟");
+      alert('별점 평가가 DB에 성공적으로 저장되었습니다! 🌟');
       navigate(-1);
-
     } catch (error) {
       alert(`평가 저장 실패: ${error.message}`);
       console.error(error);
@@ -78,7 +85,6 @@ const MatchHistory = () => {
 
       {/* 배경 */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-
         <style>{`
           @keyframes bg-wave {
             0% {
@@ -165,10 +171,22 @@ const MatchHistory = () => {
         </div>
 
         <div className="space-y-5">
+          {history.length === 0 && (
+            <div className="
+              bg-white/5
+              border border-white/10
+              rounded-[28px]
+              p-8
+              text-center
+              text-stone-400
+            ">
+              아직 매칭 히스토리가 없습니다.
+            </div>
+          )}
 
           {history.map((match) => (
             <div
-              key={match.id}
+              key={`${match.id}-${match.date}`}
               className="
                 bg-white/5
                 backdrop-blur-xl
@@ -219,7 +237,6 @@ const MatchHistory = () => {
                 </span>
 
                 <div className="flex gap-3">
-
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
@@ -232,17 +249,16 @@ const MatchHistory = () => {
                     >
                       <Star
                         size={34}
-                        fill={star <= match.rating ? "currentColor" : "none"}
+                        fill={star <= match.rating ? 'currentColor' : 'none'}
                         strokeWidth={star <= match.rating ? 0 : 2}
                         className={
                           star <= match.rating
-                            ? "text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]"
-                            : "text-stone-600"
+                            ? 'text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]'
+                            : 'text-stone-600'
                         }
                       />
                     </button>
                   ))}
-
                 </div>
 
                 {match.rating > 0 && (
@@ -261,7 +277,6 @@ const MatchHistory = () => {
 
             </div>
           ))}
-
         </div>
 
         <button
