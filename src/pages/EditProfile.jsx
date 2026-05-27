@@ -1,13 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Camera, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { fetchUserById, updateUser } from '../api/users'; // 💡 API 도구 불러오기!
 
 const EditProfile = () => {
   const navigate = useNavigate();
   
-  const [nickname, setNickname] = useState('윤재');
+  const [nickname, setNickname] = useState('');
   const [tag, setTag] = useState('KR1');
-  const [bio, setBio] = useState('즐겁게 듀오하실 분 찾아요! 멘탈 좋습니다 😊');
+  const [bio, setBio] = useState('');
   const [profileImage, setProfileImage] = useState('https://i.namu.wiki/i/EZNaF5XmAKKF4LgVE_D0sBSaH1aalphJ5BDr9uGBLqiuxwyzTZygUkCPgTOAhqyn6wBRonLpdkxSQ_EWxfrER-JzvuFbc6m8TjEQXM-ERJzvyTcGPcNlJj3KoxBFHvEfESfntDdLIP_Vu1pWadJUQg.webp');
 
   const [tier, setTier] = useState('Challenger');
@@ -15,37 +16,44 @@ const EditProfile = () => {
   
   const [gameMode, setGameMode] = useState('랭크');
   const [lane, setLane] = useState('미드');
-  const [playStyle, setPlayStyle] = useState('빡겜');
+  const [playStyle, setPlayStyle] = useState('빡겜 유저');
 
   const tierList = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger'];
   const gameModes = ['일반', '랭크', '칼바람'];
   const lanes = ['탑', '정글', '미드', '바텀', '서폿'];
-  const playStyles = ['빡겜', '즐겜', '상관없음'];
-
+  const playStyles = ['빡겜 유저', '즐겜 유저', '상대방한테 맞춰요'];
   const fileInputRef = useRef(null);
 
-  // 💡 마이페이지와 완벽하게 동일한 티어 색상 규칙
-  const getTierColor = (tier) => {
-    const lower = tier.toLowerCase();
-    
-    // 💡 includes 대신 === (정확히 일치)를 사용하여 단어 겹침 버그를 완벽 해결했습니다!
+  // 💡 화면이 켜질 때 백엔드에서 기존 1번 유저의 진짜 데이터를 불러옵니다.
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await fetchUserById(1); // 아직 로그인이 없으므로 임시로 1번 유저 고정
+        setNickname(data.nickname || '');
+        setTier(data.tier || 'Challenger');
+        setLane(data.line || '미드');
+        setBio(data.intro || '');
+        setPlayStyle(data.duo_style || '빡겜');
+        setGameMode(data.game_mode || '랭크');
+      } catch (error) {
+        console.error("데이터를 불러오지 못했습니다.", error);
+      }
+    };
+    loadData();
+  }, []);
+
+  const getTierColor = (t) => {
+    const lower = t.toLowerCase();
     if (lower === 'iron') return 'text-stone-500';
     if (lower === 'bronze') return 'text-amber-700';
     if (lower === 'silver') return 'text-slate-400';
     if (lower === 'gold') return 'text-yellow-500';
-    
-    // 💡 플래티넘은 푸른빛 청록색(cyan), 에메랄드는 뚜렷한 초록색(green)으로 명확히 분리!
     if (lower === 'platinum') return 'text-cyan-500';
     if (lower === 'emerald') return 'text-green-500';
-    
     if (lower === 'diamond') return 'text-blue-500';
     if (lower === 'master') return 'text-purple-500';
     if (lower === 'grandmaster') return 'text-red-500';
-    
-    if (lower === 'challenger') {
-      return 'bg-gradient-to-r from-cyan-500 via-yellow-500 to-amber-500 text-transparent bg-clip-text font-black tracking-tight';
-    }
-    
+    if (lower === 'challenger') return 'bg-gradient-to-r from-cyan-500 via-yellow-500 to-amber-500 text-transparent bg-clip-text font-black tracking-tight';
     return 'text-stone-500'; 
   };
 
@@ -56,13 +64,31 @@ const EditProfile = () => {
     if (file) setProfileImage(URL.createObjectURL(file));
   };
 
-  const handleSave = () => {
+  // 💡 진짜 백엔드로 데이터를 전송하는 저장 로직!
+  const handleSave = async () => {
     if (nickname.trim() === '' || tag.trim() === '') {
       alert("닉네임과 태그를 모두 입력해 주세요!");
       return;
     }
-    alert("프로필이 성공적으로 저장되었습니다! 🎉");
-    navigate(-1);
+
+    try {
+      const updateData = {
+        nickname: nickname,
+        tier: tier,
+        line: lane,
+        intro: bio,
+        duo_style: playStyle,
+        game_mode: gameMode
+      };
+
+      await updateUser(1, updateData);
+      
+      alert("DB에 프로필이 성공적으로 저장되었습니다! 🎉");
+      navigate(-1);
+    } catch (error) {
+      // 💡 여기서 백엔드의 진짜 에러 이유를 팝업창으로 보여줍니다!
+      alert(`저장 실패 이유: ${error.message}`);
+    }
   };
 
   const renderSelectionButtons = (options, state, setState) => (
@@ -87,9 +113,7 @@ const EditProfile = () => {
     <div className="min-h-screen bg-stone-100 font-sans text-stone-900 max-w-md mx-auto relative pb-24">
       <header className="flex items-center justify-between px-5 py-6 bg-white/50 backdrop-blur-md sticky top-0 z-10 border-b border-stone-200/50">
         <div className="flex items-center space-x-2">
-          <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-stone-500 hover:bg-white rounded-full transition-all duration-300">
-            <ArrowLeft size={24} />
-          </button>
+          <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-stone-500 hover:bg-white rounded-full transition-all duration-300"><ArrowLeft size={24} /></button>
           <h1 className="text-xl font-extrabold tracking-tight text-stone-900">프로필 수정</h1>
         </div>
       </header>
@@ -100,9 +124,7 @@ const EditProfile = () => {
             <div className="w-24 h-24 rounded-full bg-stone-200 overflow-hidden shadow-md">
               <img src={profileImage} alt="프로필" className="w-full h-full object-cover" />
             </div>
-            <button onClick={handleCameraClick} className="absolute bottom-0 right-0 p-2.5 bg-white rounded-full shadow-lg border border-stone-100 text-stone-700 hover:text-violet-500">
-              <Camera size={18} />
-            </button>
+            <button onClick={handleCameraClick} className="absolute bottom-0 right-0 p-2.5 bg-white rounded-full shadow-lg border border-stone-100 text-stone-700 hover:text-violet-500"><Camera size={18} /></button>
             <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageChange} />
           </div>
         </section>
@@ -121,23 +143,14 @@ const EditProfile = () => {
 
           <div className="space-y-2 relative">
             <label className="text-sm font-extrabold text-stone-800 ml-1">현재 티어</label>
-            <div 
-              onClick={() => setIsTierOpen(!isTierOpen)}
-              className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex justify-between items-center cursor-pointer hover:border-violet-300 transition-colors"
-            >
+            <div onClick={() => setIsTierOpen(!isTierOpen)} className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3.5 flex justify-between items-center cursor-pointer hover:border-violet-300 transition-colors">
               <span className={`font-extrabold text-lg ${getTierColor(tier)}`}>{tier}</span>
               <ChevronDown size={20} className={`text-stone-400 transition-transform duration-300 ${isTierOpen ? 'rotate-180' : ''}`} />
             </div>
-            
             {isTierOpen && (
               <ul className="absolute z-20 w-full mt-2 bg-white border border-stone-200 rounded-2xl shadow-xl max-h-56 overflow-y-auto overflow-hidden animate-in fade-in slide-in-from-top-2">
                 {tierList.map(t => (
-                  <li 
-                    key={t} 
-                    onClick={() => { setTier(t); setIsTierOpen(false); }}
-                    // 💡 상자(li)에는 껍데기 디자인만 주고, 알맹이(span)에 색상을 줘서 완벽하게 맞췄습니다.
-                    className="px-4 py-3.5 hover:bg-stone-50 cursor-pointer border-b border-stone-100 last:border-0"
-                  >
+                  <li key={t} onClick={() => { setTier(t); setIsTierOpen(false); }} className="px-4 py-3.5 hover:bg-stone-50 cursor-pointer border-b border-stone-100 last:border-0">
                     <span className={`font-extrabold text-base ${getTierColor(t)}`}>{t}</span>
                   </li>
                 ))}
