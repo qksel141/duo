@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import MyPage from './pages/MyPage';
 import EditProfile from './pages/EditProfile';
 import MannerScoreDetail from './pages/MannerScoreDetail';
+import MatchHistory from './pages/MatchHistory';
 
 export default function App() {
   return (
@@ -21,6 +22,9 @@ export default function App() {
 
         {/* 매너점수 상세 */}
         <Route path="/manner-score" element={<MannerScoreDetail />} />
+
+        {/* 매칭 히스토리 */}
+        <Route path="/match-history" element={<MatchHistory />} />
       </Routes>
     </BrowserRouter>
   );
