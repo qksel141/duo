@@ -41,7 +41,7 @@ const MyPage = () => {
     }
   };
 
-  const handleGoHome = () => alert("홈 화면으로 이동합니다.");
+  const handleGoHome = () => navigate('/');
   const handleGoChat = () => alert("채팅 화면으로 이동합니다.");
 
   return (
