@@ -49,3 +49,48 @@ export function toProfile(user) {
       typeof user.rating_count === 'number' ? user.rating_count : 0,
   };
 }
+
+// 유저 프로필 수정 (백엔드의 PUT /users/:id 와 연결)
+export async function updateUser(id, data) {
+  const res = await fetch(apiUrl(`/users/${id}`), {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data), 
+  });
+
+  if (!res.ok) {
+    // 💡 백엔드가 뱉어낸 진짜 불만(에러 메시지)을 꺼내서 화면으로 던집니다!
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `서버 에러 (상태 코드: ${res.status})`);
+  }
+
+  return res.json();
+}
+
+// 별점 평가 등록 (백엔드의 POST /ratings 와 연결)
+export async function createRating(data) {
+  const res = await fetch(apiUrl('/ratings'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data), 
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `별점 등록 실패 (상태 코드: ${res.status})`);
+  }
+
+  return res.json();
+}
+// 모든 별점 기록 가져오기 (백엔드의 GET /ratings 와 연결)
+export async function fetchRatings() {
+  const res = await fetch(apiUrl('/ratings'));
+  if (!res.ok) {
+    throw new Error('별점 조회 실패');
+  }
+  return res.json();
+}
