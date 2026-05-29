@@ -12,25 +12,40 @@ import {
 } from 'lucide-react';
 
 import { fetchUserById } from '../api/users';
+import { getCurrentUserId, clearCurrentUser } from '../auth';
+import { disconnectSocket } from '../socket';
+
+const DEFAULT_AVATAR =
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=duo-default';
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const myId = getCurrentUserId();
 
   const [userData, setUserData] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
+    if (!myId) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
       try {
-        const data = await fetchUserById(1);
-        setUserData(data);
+        const data = await fetchUserById(myId);
+        if (!cancelled) setUserData(data);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
       }
-    };
+    })();
 
-    loadData();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [myId, navigate]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -110,10 +125,11 @@ const MyPage = () => {
 
   const handleLogout = () => {
     const isConfirm = window.confirm('정말 로그아웃 하시겠습니까?');
+    if (!isConfirm) return;
 
-    if (isConfirm) {
-      alert('성공적으로 로그아웃 되었습니다.');
-    }
+    disconnectSocket();
+    clearCurrentUser();
+    navigate('/login', { replace: true });
   };
 
   if (!userData) {
@@ -217,8 +233,8 @@ const MyPage = () => {
                   "
                 >
                   <img
-                    src="https://i.namu.wiki/i/EZNaF5XmAKKF4LgVE_D0sBSaH1aalphJ5BDr9uGBLqiuxwyzTZygUkCPgTOAhqyn6wBRonLpdkxSQ_EWxfrER-JzvuFbc6m8TjEQXM-ERJzvyTcGPcNlJj3KoxBFHvEfESfntDdLIP_Vu1pWadJUQg.webp"
-                    alt="프로필"
+                    src={userData.profile_image || DEFAULT_AVATAR}
+                    alt={userData.nickname || '프로필'}
                     className="w-full h-full object-cover"
                   />
                 </div>

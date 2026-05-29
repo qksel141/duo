@@ -4,10 +4,14 @@ import {
   X,
   MessageCircle,
   Home as HomeIcon,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 
 import { fetchUsers, toProfile } from '../api/users';
+import { getCurrentUser, getCurrentUserId, clearCurrentUser } from '../auth';
+import { disconnectSocket, getSocket } from '../socket';
+import LikesInbox from '../components/LikesInbox';
 
 function renderStars(rating) {
   const safe = Math.max(0, Math.min(5, Math.round(rating)));
@@ -17,24 +21,55 @@ function renderStars(rating) {
 export default function Home() {
   const navigate = useNavigate();
 
+  const currentUser = getCurrentUser();
+  const myId = getCurrentUserId();
+
   const [profiles, setProfiles] = useState([]);
   const [removedIds, setRemovedIds] = useState(() => {
-    return JSON.parse(localStorage.getItem('removedIds')) || [];
+    return JSON.parse(sessionStorage.getItem('removedIds')) || [];
   });
   const [matchedProfile, setMatchedProfile] = useState(null);
+
+  const handleLogout = () => {
+    disconnectSocket();
+    clearCurrentUser();
+    navigate('/login', { replace: true });
+  };
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [vAnimState, setVAnimState] = useState('');
-  const [isViewingOldCard, setIsViewingOldCard] = useState(false);
-
-  const likedMeUserIds = [2, 4, 6, 8, 10];
 
   useEffect(() => {
-    localStorage.setItem('removedIds', JSON.stringify(removedIds));
+    sessionStorage.setItem('removedIds', JSON.stringify(removedIds));
   }, [removedIds]);
+
+  // Home에서 직접 match:made 수신 → 모달 띄움 (NotifyProvider의 토스트와 별개)
+  useEffect(() => {
+    if (!myId) return;
+    const socket = getSocket();
+    if (!socket) return;
+
+    const onMatch = ({ partner }) => {
+      if (!partner) return;
+
+      const matchData = {
+        id: partner.id,
+        userId: partner.id,
+        name: partner.nickname,
+        tag: 'KR1',
+        img: partner.profile_image,
+      };
+
+      setMatchedProfile(matchData);
+      sessionStorage.setItem('currentMatch', JSON.stringify(matchData));
+    };
+
+    socket.on('match:made', onMatch);
+    return () => socket.off('match:made', onMatch);
+  }, [myId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,9 +98,10 @@ export default function Home() {
     };
   }, []);
 
-  const visibleProfiles = profiles.filter(
-    (profile) => !removedIds.map(Number).includes(Number(profile.id))
-  );
+  const visibleProfiles = profiles.filter((profile) => {
+    if (Number(profile.id) === Number(myId)) return false;
+    return !removedIds.map(Number).includes(Number(profile.id));
+  });
 
   const profileCount = visibleProfiles.length;
 
@@ -78,21 +114,19 @@ export default function Home() {
 
   const nextSlide = () => {
     if (vAnimState !== '' || profileCount === 0) return;
-    setIsViewingOldCard(false);
     setCurrentIndex((prev) => (prev + 1) % profileCount);
   };
 
   const prevSlide = () => {
     if (vAnimState !== '' || profileCount === 0) return;
-    setIsViewingOldCard(true);
     setCurrentIndex((prev) => (prev - 1 + profileCount) % profileCount);
   };
 
   const handleVButtonClick = () => {
     if (vAnimState !== '' || profileCount === 0) return;
-    if (isViewingOldCard) return;
 
     const currentProfile = visibleProfiles[currentIndex];
+    const socket = getSocket();
 
     setVAnimState('zoom');
 
@@ -100,40 +134,54 @@ export default function Home() {
       setVAnimState('fly-right');
 
       setTimeout(() => {
-        const isMatched = likedMeUserIds.includes(Number(currentProfile.id));
+        if (socket) {
+          socket.emit(
+            'like:send',
+            { toUserId: currentProfile.id },
+            (ack) => {
+              if (!ack?.ok) {
+                console.warn('like 전송 실패:', ack?.error);
+                return;
+              }
 
-        if (isMatched) {
-          setMatchedProfile(currentProfile);
+              if (ack.matched && ack.partner) {
+                const matchData = {
+                  id: ack.partner.id,
+                  userId: ack.partner.id,
+                  name: ack.partner.nickname,
+                  tag: 'KR1',
+                  img: ack.partner.profile_image,
+                };
 
-          const existingChats =
-            JSON.parse(localStorage.getItem('activeChats')) || [];
+                setMatchedProfile(matchData);
+                sessionStorage.setItem('currentMatch', JSON.stringify(matchData));
 
-          const alreadyExists = existingChats.some(
-            (chat) => Number(chat.userId) === Number(currentProfile.id)
-          );
+                const existingChats =
+                  JSON.parse(sessionStorage.getItem('activeChats')) || [];
 
-          if (!alreadyExists) {
-            const newChat = {
-              id: Date.now(),
-              userId: currentProfile.id,
-              name: currentProfile.name,
-              tag: 'KR1',
-              img: currentProfile.img,
-              createdAt: new Date().toLocaleString('ko-KR'),
-              messages: [
-                {
-                  id: 1,
-                  sender: 'other',
-                  text: '안녕하세요! 같이 듀오해요 😄'
+                const alreadyExists = existingChats.some(
+                  (chat) =>
+                    Number(chat.userId) === Number(ack.partner.id)
+                );
+
+                if (!alreadyExists) {
+                  const newChat = {
+                    id: Date.now(),
+                    userId: ack.partner.id,
+                    name: ack.partner.nickname,
+                    tag: 'KR1',
+                    img: ack.partner.profile_image,
+                    createdAt: new Date().toLocaleString('ko-KR'),
+                  };
+
+                  sessionStorage.setItem(
+                    'activeChats',
+                    JSON.stringify([newChat, ...existingChats])
+                  );
                 }
-              ]
-            };
-
-            localStorage.setItem(
-              'activeChats',
-              JSON.stringify([newChat, ...existingChats])
-            );
-          }
+              }
+            }
+          );
         }
 
         addRemovedId(currentProfile.id);
@@ -149,7 +197,6 @@ export default function Home() {
 
   const handleXButtonClick = () => {
     if (vAnimState !== '' || profileCount === 0) return;
-    if (isViewingOldCard) return;
 
     const currentProfile = visibleProfiles[currentIndex];
 
@@ -256,6 +303,8 @@ export default function Home() {
         </button>
 
         <div className="flex items-center gap-6">
+          <LikesInbox />
+
           <button
             onClick={() => navigate('/my-chats')}
             className="text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300"
@@ -269,6 +318,37 @@ export default function Home() {
           >
             마이페이지
           </button>
+
+          {currentUser && (
+            <div className="
+              flex items-center gap-3
+              pl-4 ml-2
+              border-l border-white/10
+            ">
+              <span className="text-sm text-stone-300">
+                <span className="text-stone-500">접속:</span>{' '}
+                <span className="font-bold text-violet-300">
+                  {currentUser.nickname}
+                </span>
+                <span className="text-xs text-stone-500 ml-1">
+                  #{currentUser.id}
+                </span>
+              </span>
+
+              <button
+                onClick={handleLogout}
+                className="
+                  p-2 rounded-xl
+                  text-stone-400 hover:text-white
+                  hover:bg-white/10
+                  transition-colors
+                "
+                title="다른 유저로 로그인"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -348,7 +428,6 @@ export default function Home() {
             <div className="flex gap-4 w-[400px] h-16 z-40">
               <button
                 onClick={handleXButtonClick}
-                disabled={isViewingOldCard}
                 className="flex-1 bg-stone-950/40 text-white hover:text-red-500 border border-purple-500/10 transition-all duration-300 flex items-center justify-center text-2xl font-black active:scale-95 disabled:opacity-30"
               >
                 ✕
@@ -356,7 +435,6 @@ export default function Home() {
 
               <button
                 onClick={handleVButtonClick}
-                disabled={isViewingOldCard}
                 className="flex-1 bg-violet-600/70 hover:bg-violet-500/90 text-white hover:text-emerald-300 transition-all duration-300 flex items-center justify-center text-2xl font-black active:scale-95 disabled:opacity-30"
               >
                 ✓
@@ -478,8 +556,17 @@ export default function Home() {
 
               <button
                 onClick={() => {
-                  localStorage.removeItem('selectedChat');
-                  localStorage.setItem('currentMatch', JSON.stringify(matchedProfile));
+                  sessionStorage.removeItem('selectedChat');
+                  sessionStorage.setItem(
+                    'currentMatch',
+                    JSON.stringify({
+                      id: matchedProfile.id,
+                      userId: matchedProfile.id,
+                      name: matchedProfile.name,
+                      tag: matchedProfile.tag || 'KR1',
+                      img: matchedProfile.img,
+                    })
+                  );
                   setMatchedProfile(null);
                   navigate('/chat');
                 }}

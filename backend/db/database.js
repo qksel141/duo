@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcryptjs');
 const path = require('path');
 
 const BACKEND_ROOT = path.join(__dirname, '..');
@@ -6,6 +7,7 @@ const BACKEND_ROOT = path.join(__dirname, '..');
 const EXPECTED_COLUMNS = [
   'id',
   'nickname',
+  'password_hash',
   'tier',
   'line',
   'sub_line',
@@ -20,7 +22,8 @@ const EXPECTED_COLUMNS = [
 const LINES = ['탑', '정글', '미드', '원딜', '서포터'];
 const DUO_STYLES = ['상대방한테 맞춰요', '빡겜 유저', '즐겜 유저'];
 
-const SCHEMA_SIGNATURE = '상대방한테 맞춰요';
+// 스키마가 바뀔 때마다 이 시그니처를 올려서 자동 마이그레이션 트리거
+const SCHEMA_SIGNATURE = 'v2-nickname-unique-password';
 
 function resolveDbPath() {
   if (!process.env.DB_PATH) {
@@ -95,7 +98,8 @@ async function createUsersTable() {
   await exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nickname VARCHAR,
+      nickname VARCHAR UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
       tier VARCHAR,
       line TEXT CHECK(line IN ('탑', '정글', '미드', '원딜', '서포터')),
       sub_line TEXT CHECK(
@@ -110,6 +114,18 @@ async function createUsersTable() {
         duo_style IN ('상대방한테 맞춰요', '빡겜 유저', '즐겜 유저')
       ),
       game_mode VARCHAR
+    )
+  `);
+}
+
+async function createLikesTable() {
+  await exec(`
+    CREATE TABLE IF NOT EXISTS likes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_user_id INTEGER NOT NULL,
+      to_user_id INTEGER NOT NULL,
+      created_at TEXT,
+      UNIQUE(from_user_id, to_user_id)
     )
   `);
 }
@@ -134,9 +150,19 @@ async function createChatsTable() {
       sender_id INTEGER,
       receiver_id INTEGER,
       message TEXT,
-      created_at TEXT
+      created_at TEXT,
+      read_at TEXT
     )
   `);
+}
+
+// 기존 DB에 read_at 컬럼이 없으면 추가 (데이터 보존)
+async function ensureChatsHasReadAt() {
+  const cols = await all('PRAGMA table_info(chats)');
+  if (!cols.some((c) => c.name === 'read_at')) {
+    await exec('ALTER TABLE chats ADD COLUMN read_at TEXT');
+    console.log('chats 테이블에 read_at 컬럼 추가');
+  }
 }
 
 async function createReportsTable() {
@@ -167,9 +193,14 @@ async function seedTestUsers() {
 
   if (row.count > 0) return;
 
+  // 테스트용 시드 계정 공통 비밀번호 (로그인할 때 '1234' 입력)
+  const SEED_PASSWORD = '1234';
+  const seedPasswordHash = await bcrypt.hash(SEED_PASSWORD, 10);
+
   const insertSql = `
     INSERT INTO users (
       nickname,
+      password_hash,
       tier,
       line,
       sub_line,
@@ -179,141 +210,33 @@ async function seedTestUsers() {
       profile_image,
       duo_style,
       game_mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const testUsers = [
-    [
-      '정글왕',
-      'Diamond',
-      '정글',
-      '탑',
-      '초반 갱킹·오브젝트 위주 플레이',
-      4.8,
-      42,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=jungle1',
-      '빡겜 유저',
-      '솔로랭크',
-    ],
-    [
-      '미드장인',
-      'Master',
-      '미드',
-      '정글',
-      '로밍으로 팀 전체 이득 보는 스타일',
-      4.6,
-      31,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=mid1',
-      '상대방한테 맞춰요',
-      '솔로랭크',
-    ],
-    [
-      '탑라이너',
-      'Platinum',
-      '탑',
-      '미드',
-      '스플릿·텔타워프 자주 사용',
-      4.2,
-      18,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=top1',
-      '즐겜 유저',
-      '일반',
-    ],
-    [
-      '서폿천사',
-      'Diamond',
-      '서포터',
-      '미드',
-      '시야·교전 주도, 팀 보호 우선',
-      4.9,
-      55,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=sup1',
-      '상대방한테 맞춰요',
-      '솔로랭크',
-    ],
-    [
-      '원딜장인',
-      'Gold',
-      '원딜',
-      '서포터',
-      '후반 캐리형, 안전한 딜링',
-      4.0,
-      12,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=adc1',
-      '즐겜 유저',
-      '일반',
-    ],
-    [
-      '버드유저',
-      'Emerald',
-      '미드',
-      '원딜',
-      '버드·제어 라인으로 운영',
-      4.4,
-      22,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=bird1',
-      '상대방한테 맞춰요',
-      '자유랭크',
-    ],
-    [
-      '정글러2',
-      'Silver',
-      '정글',
-      '서포터',
-      '정글링·스케일링 위주',
-      3.8,
-      8,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=jungle2',
-      '즐겜 유저',
-      '일반',
-    ],
-    [
-      '서폿메인',
-      'Platinum',
-      '서포터',
-      '원딜',
-      '버프·힐 중심 서폿',
-      4.3,
-      19,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=sup2',
-      '상대방한테 맞춰요',
-      '자유랭크',
-    ],
-    [
-      '탑솔러',
-      'Diamond',
-      '탑',
-      '정글',
-      '탱커·프론트라인 위주',
-      4.5,
-      27,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=top2',
-      '빡겜 유저',
-      '솔로랭크',
-    ],
-    [
-      '미드메이지',
-      'Master',
-      '미드',
-      '탑',
-      '버스트·픽오프 중심',
-      4.7,
-      38,
-      'https://api.dicebear.com/7.x/avataaars/svg?seed=mid2',
-      '빡겜 유저',
-      '솔로랭크',
-    ],
+    ['정글왕', 'Diamond', '정글', '탑', '초반 갱킹·오브젝트 위주 플레이', 4.8, 42, 'https://api.dicebear.com/7.x/avataaars/svg?seed=jungle1', '빡겜 유저', '솔로랭크'],
+    ['미드장인', 'Master', '미드', '정글', '로밍으로 팀 전체 이득 보는 스타일', 4.6, 31, 'https://api.dicebear.com/7.x/avataaars/svg?seed=mid1', '상대방한테 맞춰요', '솔로랭크'],
+    ['탑라이너', 'Platinum', '탑', '미드', '스플릿·텔타워프 자주 사용', 4.2, 18, 'https://api.dicebear.com/7.x/avataaars/svg?seed=top1', '즐겜 유저', '일반'],
+    ['서폿천사', 'Diamond', '서포터', '미드', '시야·교전 주도, 팀 보호 우선', 4.9, 55, 'https://api.dicebear.com/7.x/avataaars/svg?seed=sup1', '상대방한테 맞춰요', '솔로랭크'],
+    ['원딜장인', 'Gold', '원딜', '서포터', '후반 캐리형, 안전한 딜링', 4.0, 12, 'https://api.dicebear.com/7.x/avataaars/svg?seed=adc1', '즐겜 유저', '일반'],
+    ['버드유저', 'Emerald', '미드', '원딜', '버드·제어 라인으로 운영', 4.4, 22, 'https://api.dicebear.com/7.x/avataaars/svg?seed=bird1', '상대방한테 맞춰요', '자유랭크'],
+    ['정글러2', 'Silver', '정글', '서포터', '정글링·스케일링 위주', 3.8, 8, 'https://api.dicebear.com/7.x/avataaars/svg?seed=jungle2', '즐겜 유저', '일반'],
+    ['서폿메인', 'Platinum', '서포터', '원딜', '버프·힐 중심 서폿', 4.3, 19, 'https://api.dicebear.com/7.x/avataaars/svg?seed=sup2', '상대방한테 맞춰요', '자유랭크'],
+    ['탑솔러', 'Diamond', '탑', '정글', '탱커·프론트라인 위주', 4.5, 27, 'https://api.dicebear.com/7.x/avataaars/svg?seed=top2', '빡겜 유저', '솔로랭크'],
+    ['미드메이지', 'Master', '미드', '탑', '버스트·픽오프 중심', 4.7, 38, 'https://api.dicebear.com/7.x/avataaars/svg?seed=mid2', '빡겜 유저', '솔로랭크'],
   ];
 
   await run('BEGIN TRANSACTION');
 
   try {
     for (const user of testUsers) {
-      await run(insertSql, user);
+      // [nickname, ...rest] → [nickname, password_hash, ...rest]
+      const [nickname, ...rest] = user;
+      await run(insertSql, [nickname, seedPasswordHash, ...rest]);
     }
 
     await run('COMMIT');
-    console.log('테스트 유저 10명 추가 완료');
+    console.log(`테스트 유저 10명 추가 완료 (공통 비밀번호: ${SEED_PASSWORD})`);
   } catch (err) {
     await run('ROLLBACK');
     throw err;
@@ -328,9 +251,11 @@ async function initDatabase() {
 
   await createUsersTable();
   await createChatsTable();
+  await ensureChatsHasReadAt();
   await createReportsTable();
   await createMatchesTable();
   await createRatingsTable();
+  await createLikesTable();
 
   await seedTestUsers();
 

@@ -9,6 +9,12 @@ const proxyConfig = {
   changeOrigin: true,
 }
 
+const wsProxyConfig = {
+  target: API_TARGET,
+  changeOrigin: true,
+  ws: true,
+}
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
@@ -21,6 +27,7 @@ export default defineConfig({
       '/reports': proxyConfig,
       '/matches': proxyConfig,
       '/ratings': proxyConfig,
+      '/socket.io': wsProxyConfig,
     },
   },
 })
