@@ -94,3 +94,41 @@ export async function fetchRatings() {
   }
   return res.json();
 }
+
+// 두 유저 간 채팅 내역 가져오기 (백엔드 GET /chats?myId=&partnerId= 와 연결)
+export async function fetchChatHistory(myId, partnerId) {
+  const params = new URLSearchParams({
+    myId: String(myId),
+    partnerId: String(partnerId),
+  });
+
+  const res = await fetch(apiUrl(`/chats?${params.toString()}`));
+
+  if (!res.ok) {
+    throw new Error(`채팅 내역 조회 실패 (status ${res.status})`);
+  }
+
+  return res.json();
+}
+
+// 내 채팅방 목록 (매칭된 상대들 + 마지막 메시지 + 안 읽은 개수)
+export async function fetchChatList(userId) {
+  const res = await fetch(apiUrl(`/chats/list/${userId}`));
+
+  if (!res.ok) {
+    throw new Error(`채팅 목록 조회 실패 (status ${res.status})`);
+  }
+
+  return res.json();
+}
+
+// 내가 받은 좋아요 목록
+export async function fetchReceivedLikes(userId) {
+  const res = await fetch(apiUrl(`/likes/received/${userId}`));
+
+  if (!res.ok) {
+    throw new Error(`받은 좋아요 조회 실패 (status ${res.status})`);
+  }
+
+  return res.json();
+}

@@ -1,5 +1,10 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
 
 import Home from './pages/Home';
 import MyPage from './pages/MyPage';
@@ -8,27 +13,100 @@ import MannerScoreDetail from './pages/MannerScoreDetail';
 import MatchHistory from './pages/MatchHistory';
 import Chat from './pages/Chat';
 import MyChats from './pages/MyChats';
+import Login from './pages/Login';
+
+import { isLoggedIn } from './auth';
+import { ToastProvider } from './components/Toast';
+import NotifyProvider from './components/NotifyProvider';
+
+function RequireAuth({ children }) {
+  if (!isLoggedIn()) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-
-        <Route path="/" element={<Home />} />
-
-        <Route path="/mypage" element={<MyPage />} />
-
-        <Route path="/edit-profile" element={<EditProfile />} />
-
-        <Route path="/manner-score" element={<MannerScoreDetail />} />
-
-        <Route path="/match-history" element={<MatchHistory />} />
-
-        <Route path="/chat" element={<Chat />} />
-
-        <Route path="/my-chats" element={<MyChats />} />
-
-      </Routes>
+      <ToastProvider>
+        <NotifyProvider>
+          <AppRoutes />
+        </NotifyProvider>
+      </ToastProvider>
     </BrowserRouter>
+  );
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+
+        <Route path="/login" element={<Login />} />
+
+        <Route
+          path="/"
+          element={
+            <RequireAuth>
+              <Home />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/mypage"
+          element={
+            <RequireAuth>
+              <MyPage />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/edit-profile"
+          element={
+            <RequireAuth>
+              <EditProfile />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/manner-score"
+          element={
+            <RequireAuth>
+              <MannerScoreDetail />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/match-history"
+          element={
+            <RequireAuth>
+              <MatchHistory />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/chat"
+          element={
+            <RequireAuth>
+              <Chat />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/my-chats"
+          element={
+            <RequireAuth>
+              <MyChats />
+            </RequireAuth>
+          }
+        />
+
+    </Routes>
   );
 }

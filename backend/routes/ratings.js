@@ -1,3 +1,5 @@
+console.log('ratings file loaded');
+
 const express = require('express');
 const router = express.Router();
 
