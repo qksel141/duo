@@ -7,9 +7,12 @@ import {
 
 import { useNavigate } from 'react-router-dom';
 import { fetchUserById, updateUser } from '../api/users';
+import { getCurrentUserId, setCurrentUser } from '../auth';
 
 const EditProfile = () => {
   const navigate = useNavigate();
+
+  const myId = getCurrentUserId();
 
   const [nickname, setNickname] = useState('');
   const [tag, setTag] = useState('KR1');
@@ -51,9 +54,15 @@ const EditProfile = () => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    if (!myId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login', { replace: true });
+      return;
+    }
+
     const loadData = async () => {
       try {
-        const data = await fetchUserById(1);
+        const data = await fetchUserById(myId);
 
         setNickname(data.nickname || '');
         setTier(data.tier || 'Challenger');
@@ -61,14 +70,17 @@ const EditProfile = () => {
         setBio(data.intro || '');
         setPlayStyle(data.duo_style || '빡겜 유저');
         setGameMode(data.game_mode || '랭크');
-
+        setProfileImage(
+          data.profile_image ||
+            'https://i.namu.wiki/i/EZNaF5XmAKKF4LgVE_D0sBSaH1aalphJ5BDr9uGBLqiuxwyzTZygUkCPgTOAhqyn6wBRonLpdkxSQ_EWxfrER-JzvuFbc6m8TjEQXM-ERJzvyTcGPcNlJj3KoxBFHvEfESfntDdLIP_Vu1pWadJUQg.webp'
+        );
       } catch (error) {
         console.error('데이터를 불러오지 못했습니다.', error);
       }
     };
 
     loadData();
-  }, []);
+  }, [myId, navigate]);
 
   const getTierColor = (t) => {
     const lower = t.toLowerCase();
@@ -111,6 +123,12 @@ const EditProfile = () => {
   };
 
   const handleSave = async () => {
+    if (!myId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login', { replace: true });
+      return;
+    }
+
     if (nickname.trim() === '' || tag.trim() === '') {
       alert('닉네임과 태그를 모두 입력해 주세요!');
       return;
@@ -123,15 +141,19 @@ const EditProfile = () => {
         line: lane,
         intro: bio,
         duo_style: playStyle,
-        game_mode: gameMode
+        game_mode: gameMode,
+        profile_image: profileImage
       };
 
-      await updateUser(1, updateData);
+      const updatedUser = await updateUser(myId, updateData);
+
+      if (typeof setCurrentUser === 'function') {
+        setCurrentUser(updatedUser);
+      }
 
       alert('DB에 프로필이 성공적으로 저장되었습니다! 🎉');
 
-      navigate(-1);
-
+      navigate('/mypage');
     } catch (error) {
       alert(`저장 실패 이유: ${error.message}`);
     }
@@ -222,7 +244,7 @@ const EditProfile = () => {
         <div className="flex items-center gap-4">
 
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/mypage')}
             className="
               p-3 rounded-full
               bg-stone-950/40

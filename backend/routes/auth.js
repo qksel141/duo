@@ -1,11 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-
+const { getIO } = require('../socket');
 const { run, get } = require('../db/database');
 
 const router = express.Router();
 
-// 닉네임 규칙: 2~20자, 공백 양끝 트림 후 검증
 const NICKNAME_MIN = 2;
 const NICKNAME_MAX = 20;
 const PASSWORD_MIN = 4;
@@ -17,6 +16,7 @@ function validateCredentials(nickname, password) {
     errors.push('닉네임을 입력해 주세요.');
   } else {
     const len = nickname.trim().length;
+
     if (len < NICKNAME_MIN || len > NICKNAME_MAX) {
       errors.push(`닉네임은 ${NICKNAME_MIN}~${NICKNAME_MAX}자여야 합니다.`);
     }
@@ -31,7 +31,9 @@ function validateCredentials(nickname, password) {
 
 function publicUser(row) {
   if (!row) return null;
+
   const { password_hash, ...rest } = row;
+
   return rest;
 }
 
@@ -42,8 +44,11 @@ router.post('/signup', async (req, res) => {
     const password = req.body?.password ?? '';
 
     const errors = validateCredentials(nickname, password);
+
     if (errors.length > 0) {
-      return res.status(400).json({ error: errors.join(' ') });
+      return res.status(400).json({
+        error: errors.join(' ')
+      });
     }
 
     const existing = await get(
@@ -53,13 +58,14 @@ router.post('/signup', async (req, res) => {
 
     if (existing) {
       return res.status(409).json({
-        error: '이미 사용 중인 닉네임입니다.',
+        error: '이미 사용 중인 닉네임입니다.'
       });
     }
 
     const password_hash = await bcrypt.hash(password, 10);
 
-    const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nickname)}`;
+    const defaultAvatar =
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nickname)}`;
 
     const result = await run(
       `INSERT INTO users (nickname, password_hash, profile_image)
@@ -67,16 +73,28 @@ router.post('/signup', async (req, res) => {
       [nickname, password_hash, defaultAvatar]
     );
 
-    const user = await get('SELECT * FROM users WHERE id = ?', [
-      result.lastID,
-    ]);
+    const user = await get(
+      'SELECT * FROM users WHERE id = ?',
+      [result.lastID]
+    );
+
+    const newUser = publicUser(user);
+
+    const io = getIO();
+
+    if (io) {
+      io.emit('user:created', newUser);
+    }
 
     return res.status(201).json({
-      user: publicUser(user),
+      user: newUser
     });
   } catch (err) {
     console.error('signup 실패:', err);
-    return res.status(500).json({ error: err.message });
+
+    return res.status(500).json({
+      error: err.message
+    });
   }
 });
 
@@ -88,7 +106,7 @@ router.post('/login', async (req, res) => {
 
     if (!nickname || !password) {
       return res.status(400).json({
-        error: '닉네임과 비밀번호를 입력해 주세요.',
+        error: '닉네임과 비밀번호를 입력해 주세요.'
       });
     }
 
@@ -99,23 +117,27 @@ router.post('/login', async (req, res) => {
 
     if (!user) {
       return res.status(401).json({
-        error: '닉네임 또는 비밀번호가 올바르지 않습니다.',
+        error: '닉네임 또는 비밀번호가 올바르지 않습니다.'
       });
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
+
     if (!match) {
       return res.status(401).json({
-        error: '닉네임 또는 비밀번호가 올바르지 않습니다.',
+        error: '닉네임 또는 비밀번호가 올바르지 않습니다.'
       });
     }
 
     return res.json({
-      user: publicUser(user),
+      user: publicUser(user)
     });
   } catch (err) {
     console.error('login 실패:', err);
-    return res.status(500).json({ error: err.message });
+
+    return res.status(500).json({
+      error: err.message
+    });
   }
 });
 

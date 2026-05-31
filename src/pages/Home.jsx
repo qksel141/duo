@@ -25,6 +25,9 @@ export default function Home() {
   const myId = getCurrentUserId();
 
   const [profiles, setProfiles] = useState([]);
+
+  const [onlineUserIds, setOnlineUserIds] = useState([]);
+
   const [removedIds, setRemovedIds] = useState(() => {
     return JSON.parse(sessionStorage.getItem('removedIds')) || [];
   });
@@ -36,6 +39,8 @@ export default function Home() {
     navigate('/login', { replace: true });
   };
 
+
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -46,10 +51,93 @@ export default function Home() {
     sessionStorage.setItem('removedIds', JSON.stringify(removedIds));
   }, [removedIds]);
 
-  // Home에서 직접 match:made 수신 → 모달 띄움 (NotifyProvider의 토스트와 별개)
+  // 실시간 유저 생성/수정 반영
   useEffect(() => {
     if (!myId) return;
+
     const socket = getSocket();
+
+    if (!socket) return;
+
+    const handleUserCreated = (newUser) => {
+      console.log('새 유저 도착', newUser);
+
+      if (Number(newUser.id) === Number(myId)) return;
+
+      setProfiles((prev) => {
+        const alreadyExists = prev.some(
+          (profile) => Number(profile.id) === Number(newUser.id)
+        );
+
+        if (alreadyExists) return prev;
+
+        return [...prev, toProfile(newUser)];
+      });
+    };
+
+    const handleUserUpdated = (updatedUser) => {
+      console.log('유저 수정 도착', updatedUser);
+
+      setProfiles((prev) =>
+        prev.map((profile) =>
+          Number(profile.id) === Number(updatedUser.id)
+            ? toProfile(updatedUser)
+            : profile
+        )
+      );
+    };
+
+    socket.on('user:created', handleUserCreated);
+    socket.on('user:updated', handleUserUpdated);
+
+    return () => {
+      socket.off('user:created', handleUserCreated);
+      socket.off('user:updated', handleUserUpdated);
+    };
+  }, [myId]);
+
+  // 실시간 온라인/오프라인 반영
+  useEffect(() => {
+    if (!myId) return;
+
+    const socket = getSocket();
+
+    if (!socket) return;
+
+    const handleOnlineUsers = ({ userIds }) => {
+      setOnlineUserIds(userIds.map(Number));
+    };
+
+    const handleUserOnline = ({ userId }) => {
+      setOnlineUserIds((prev) => {
+        const next = [...prev.map(Number), Number(userId)];
+        return [...new Set(next)];
+      });
+    };
+
+    const handleUserOffline = ({ userId }) => {
+      setOnlineUserIds((prev) =>
+        prev.filter((id) => Number(id) !== Number(userId))
+      );
+    };
+
+    socket.on('online:users', handleOnlineUsers);
+    socket.on('user:online', handleUserOnline);
+    socket.on('user:offline', handleUserOffline);
+
+    return () => {
+      socket.off('online:users', handleOnlineUsers);
+      socket.off('user:online', handleUserOnline);
+      socket.off('user:offline', handleUserOffline);
+    };
+  }, [myId]);
+
+  // Home에서 직접 match:made 수신 → 모달 띄움
+  useEffect(() => {
+    if (!myId) return;
+
+    const socket = getSocket();
+
     if (!socket) return;
 
     const onMatch = ({ partner }) => {
@@ -64,13 +152,21 @@ export default function Home() {
       };
 
       setMatchedProfile(matchData);
-      sessionStorage.setItem('currentMatch', JSON.stringify(matchData));
+
+      sessionStorage.setItem(
+        'currentMatch',
+        JSON.stringify(matchData)
+      );
     };
 
     socket.on('match:made', onMatch);
-    return () => socket.off('match:made', onMatch);
+
+    return () => {
+      socket.off('match:made', onMatch);
+    };
   }, [myId]);
 
+  // 최초 유저 목록 불러오기
   useEffect(() => {
     let cancelled = false;
 
@@ -87,6 +183,7 @@ export default function Home() {
         setCurrentIndex(0);
       } catch (err) {
         if (cancelled) return;
+
         setError(err.message || '알 수 없는 오류');
       } finally {
         if (!cancelled) setLoading(false);
@@ -403,10 +500,26 @@ export default function Home() {
                       {profile.name}
                     </h2>
 
+                    <div className="flex items-center gap-2 mt-2">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full ${
+                        onlineUserIds.includes(Number(profile.id))
+                        ? 'bg-emerald-400'
+                        : 'bg-stone-500'
+                        }`}
+                      />
+                      <span className="text-xs text-stone-300 font-medium">
+                        {
+                          onlineUserIds.includes(Number(profile.id))
+                            ? '온라인'
+                            : '오프라인'
+                        }
+                      </span>
+                    </div>
+
                     <p className="text-stone-200 mt-1.5 text-sm">
                       {profile.rank}
                     </p>
-
                     <p className="text-stone-300 mt-2 text-sm">
                       {profile.msg}
                     </p>

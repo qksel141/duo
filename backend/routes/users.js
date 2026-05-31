@@ -1,5 +1,6 @@
 const express = require('express');
 const { run, get, all, LINES, DUO_STYLES } = require('../db/database');
+const { getIO } = require('../socket');
 
 const router = express.Router();
 
@@ -44,9 +45,7 @@ function validateUserData(data, existing = {}) {
   }
 
   const finalLine = 'line' in data ? data.line : existing.line;
-
-  const finalSubLine =
-    'sub_line' in data ? data.sub_line : existing.sub_line;
+  const finalSubLine = 'sub_line' in data ? data.sub_line : existing.sub_line;
 
   if (
     finalLine != null &&
@@ -82,7 +81,6 @@ router.get('/', async (req, res) => {
     `);
 
     res.json(users);
-
   } catch (err) {
     res.status(500).json({
       error: err.message
@@ -102,7 +100,6 @@ router.get('/:id', async (req, res) => {
     }
 
     res.json(user);
-
   } catch (err) {
     res.status(500).json({
       error: err.message
@@ -114,7 +111,6 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const data = pickUserFields(req.body);
-
     const columns = Object.keys(data);
 
     if (columns.length === 0) {
@@ -132,7 +128,6 @@ router.post('/', async (req, res) => {
     }
 
     const placeholders = columns.map(() => '?').join(', ');
-
     const values = columns.map((col) => data[col] ?? null);
 
     const result = await run(
@@ -143,8 +138,13 @@ router.post('/', async (req, res) => {
 
     const user = await getUserById(result.lastID);
 
-    res.status(201).json(user);
+    const io = getIO();
 
+    if (io) {
+      io.emit('user:created', user);
+    }
+
+    res.status(201).json(user);
   } catch (err) {
     res.status(500).json({
       error: err.message
@@ -164,7 +164,6 @@ router.put('/:id', async (req, res) => {
     }
 
     const data = pickUserFields(req.body);
-
     const columns = Object.keys(data);
 
     if (columns.length === 0) {
@@ -198,8 +197,13 @@ router.put('/:id', async (req, res) => {
 
     const updatedUser = await getUserById(req.params.id);
 
-    res.json(updatedUser);
+    const io = getIO();
 
+    if (io) {
+      io.emit('user:updated', updatedUser);
+    }
+
+    res.json(updatedUser);
   } catch (err) {
     res.status(500).json({
       error: err.message
@@ -227,7 +231,6 @@ router.delete('/:id', async (req, res) => {
       message: 'User deleted',
       id: Number(req.params.id)
     });
-
   } catch (err) {
     res.status(500).json({
       error: err.message
