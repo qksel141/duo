@@ -12,10 +12,16 @@ import { fetchUsers, toProfile } from '../api/users';
 import { getCurrentUser, getCurrentUserId, clearCurrentUser } from '../auth';
 import { disconnectSocket, getSocket } from '../socket';
 import LikesInbox from '../components/LikesInbox';
+import { getTierBadgeClass, getTierShortLabel } from '../utils/tier';
 
 function renderStars(rating) {
   const safe = Math.max(0, Math.min(5, Math.round(rating)));
   return '★★★★★'.slice(0, safe) + '☆☆☆☆☆'.slice(0, 5 - safe);
+}
+
+// 사용자별 removedIds — 다른 계정 로그인 시 잔재 방지 (#2)
+function getRemovedIdsKey(userId) {
+  return `removedIds:${userId}`;
 }
 
 export default function Home() {
@@ -29,7 +35,8 @@ export default function Home() {
   const [onlineUserIds, setOnlineUserIds] = useState([]);
 
   const [removedIds, setRemovedIds] = useState(() => {
-    return JSON.parse(sessionStorage.getItem('removedIds')) || [];
+    if (!myId) return [];
+    return JSON.parse(sessionStorage.getItem(getRemovedIdsKey(myId))) || [];
   });
   const [matchedProfile, setMatchedProfile] = useState(null);
 
@@ -39,8 +46,6 @@ export default function Home() {
     navigate('/login', { replace: true });
   };
 
-
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -48,8 +53,9 @@ export default function Home() {
   const [vAnimState, setVAnimState] = useState('');
 
   useEffect(() => {
-    sessionStorage.setItem('removedIds', JSON.stringify(removedIds));
-  }, [removedIds]);
+    if (!myId) return;
+    sessionStorage.setItem(getRemovedIdsKey(myId), JSON.stringify(removedIds));
+  }, [removedIds, myId]);
 
   // 실시간 유저 생성/수정 반영
   useEffect(() => {
@@ -496,11 +502,22 @@ export default function Home() {
                   />
 
                   <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/95 via-black/50 to-transparent">
-                    <h2 className="text-3xl font-extrabold text-white">
-                      {profile.name}
-                    </h2>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <h2 className="text-3xl font-extrabold text-white">
+                        {profile.name}
+                      </h2>
 
-                    <div className="flex items-center gap-2 mt-2">
+                      {profile.tier && (
+                        <span className={`
+                          px-3 py-1 rounded-full text-[11px] font-black
+                          ${getTierBadgeClass(profile.tier)}
+                        `}>
+                          {getTierShortLabel(profile.tier)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-1">
                       <span
                         className={`w-2.5 h-2.5 rounded-full ${
                         onlineUserIds.includes(Number(profile.id))

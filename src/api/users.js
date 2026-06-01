@@ -41,6 +41,8 @@ export function toProfile(user) {
   return {
     id: user.id,
     name: user.nickname ?? `유저 #${user.id}`,
+    tier: user.tier ?? null,
+    line: user.line ?? null,
     rank: rankParts.join(' · '),
     msg: user.intro ?? user.duo_style ?? '',
     img: user.profile_image || DEFAULT_AVATAR,
@@ -128,6 +130,22 @@ export async function fetchReceivedLikes(userId) {
 
   if (!res.ok) {
     throw new Error(`받은 좋아요 조회 실패 (status ${res.status})`);
+  }
+
+  return res.json();
+}
+
+// 채팅 상대 신고하기
+export async function submitReport({ reporter_id, target_user_id, reason }) {
+  const res = await fetch(apiUrl('/reports/submit'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reporter_id, target_user_id, reason }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `신고 접수 실패 (status ${res.status})`);
   }
 
   return res.json();

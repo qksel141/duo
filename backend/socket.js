@@ -239,6 +239,70 @@ function initSocket(httpServer) {
       }
     });
 
+    // 게임 시작 / 매칭 종료 — 한 명이 요청하면 상대에게 요청 푸시,
+    // 상대가 수락(confirm)을 보내면 양쪽에 confirmed 푸시
+    socket.on('game:request', ({ partnerId }) => {
+      const target = Number(partnerId);
+      if (!target) return;
+      io.to(`user:${target}`).emit('game:request', {
+        fromUserId: myId,
+      });
+    });
+
+    socket.on('game:confirm', ({ partnerId }) => {
+      const target = Number(partnerId);
+      if (!target) return;
+      const payload = { partnerA: myId, partnerB: target };
+      io.to(`user:${myId}`).emit('game:confirmed', payload);
+      io.to(`user:${target}`).emit('game:confirmed', payload);
+    });
+
+    socket.on('game:reject', ({ partnerId }) => {
+      const target = Number(partnerId);
+      if (!target) return;
+      io.to(`user:${target}`).emit('game:rejected', {
+        fromUserId: myId,
+      });
+    });
+
+    socket.on('match:end:request', ({ partnerId }) => {
+      const target = Number(partnerId);
+      if (!target) return;
+      io.to(`user:${target}`).emit('match:end:request', {
+        fromUserId: myId,
+      });
+    });
+
+    socket.on('match:end:confirm', async ({ partnerId }) => {
+      const target = Number(partnerId);
+      if (!target) return;
+
+      // 양쪽 모두에게 종료 푸시 + matchId 조회해서 함께 보냄
+      const matchRow = await get(
+        `SELECT id FROM matches
+           WHERE (user_id = ? AND matched_user_id = ?)
+              OR (user_id = ? AND matched_user_id = ?)`,
+        [myId, target, target, myId]
+      );
+
+      const payload = {
+        partnerA: myId,
+        partnerB: target,
+        matchId: matchRow?.id ?? null,
+      };
+
+      io.to(`user:${myId}`).emit('match:ended', payload);
+      io.to(`user:${target}`).emit('match:ended', payload);
+    });
+
+    socket.on('match:end:reject', ({ partnerId }) => {
+      const target = Number(partnerId);
+      if (!target) return;
+      io.to(`user:${target}`).emit('match:end:rejected', {
+        fromUserId: myId,
+      });
+    });
+
     // 좋아요 보내기
     socket.on('like:send', async ({ toUserId }, ack) => {
       try {

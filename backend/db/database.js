@@ -243,6 +243,34 @@ async function seedTestUsers() {
   }
 }
 
+// 사라진 유저를 참조하는 좋아요/매칭/채팅 잔재 정리 (#2 픽스)
+async function cleanupOrphans() {
+  const tables = [
+    {
+      table: 'likes',
+      where: `from_user_id NOT IN (SELECT id FROM users)
+              OR to_user_id NOT IN (SELECT id FROM users)`,
+    },
+    {
+      table: 'matches',
+      where: `user_id NOT IN (SELECT id FROM users)
+              OR matched_user_id NOT IN (SELECT id FROM users)`,
+    },
+    {
+      table: 'chats',
+      where: `sender_id NOT IN (SELECT id FROM users)
+              OR receiver_id NOT IN (SELECT id FROM users)`,
+    },
+  ];
+
+  for (const { table, where } of tables) {
+    const result = await run(`DELETE FROM ${table} WHERE ${where}`);
+    if (result.changes > 0) {
+      console.log(`${table} 고아 데이터 ${result.changes}건 정리`);
+    }
+  }
+}
+
 async function initDatabase() {
   if (await needsSchemaMigration()) {
     await exec('DROP TABLE IF EXISTS users');
@@ -258,6 +286,7 @@ async function initDatabase() {
   await createLikesTable();
 
   await seedTestUsers();
+  await cleanupOrphans();
 
   console.log('DB 준비 완료');
 }

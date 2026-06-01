@@ -1,13 +1,18 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { getIO } = require('../socket');
-const { run, get } = require('../db/database');
+const { run, get, LINES, DUO_STYLES } = require('../db/database');
 
 const router = express.Router();
 
 const NICKNAME_MIN = 2;
 const NICKNAME_MAX = 20;
 const PASSWORD_MIN = 4;
+const ALLOWED_TIERS = [
+  'Iron', 'Bronze', 'Silver', 'Gold', 'Platinum',
+  'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger',
+];
+const ALLOWED_GAME_MODES = ['솔로랭크', '자유랭크', '일반', '칼바람'];
 
 function validateCredentials(nickname, password) {
   const errors = [];
@@ -29,6 +34,23 @@ function validateCredentials(nickname, password) {
   return errors;
 }
 
+function validateProfile({ tier, line, game_mode, duo_style }) {
+  const errors = [];
+  if (tier && !ALLOWED_TIERS.includes(tier)) {
+    errors.push('지원하지 않는 티어입니다.');
+  }
+  if (line && !LINES.includes(line)) {
+    errors.push('지원하지 않는 포지션입니다.');
+  }
+  if (game_mode && !ALLOWED_GAME_MODES.includes(game_mode)) {
+    errors.push('지원하지 않는 게임 모드입니다.');
+  }
+  if (duo_style && !DUO_STYLES.includes(duo_style)) {
+    errors.push('지원하지 않는 플레이 스타일입니다.');
+  }
+  return errors;
+}
+
 function publicUser(row) {
   if (!row) return null;
 
@@ -42,8 +64,13 @@ router.post('/signup', async (req, res) => {
   try {
     const nickname = (req.body?.nickname ?? '').trim();
     const password = req.body?.password ?? '';
+    const tier = req.body?.tier || null;
+    const line = req.body?.line || null;
+    const game_mode = req.body?.game_mode || null;
+    const duo_style = req.body?.duo_style || null;
 
     const errors = validateCredentials(nickname, password);
+    errors.push(...validateProfile({ tier, line, game_mode, duo_style }));
 
     if (errors.length > 0) {
       return res.status(400).json({
@@ -68,9 +95,11 @@ router.post('/signup', async (req, res) => {
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nickname)}`;
 
     const result = await run(
-      `INSERT INTO users (nickname, password_hash, profile_image)
-       VALUES (?, ?, ?)`,
-      [nickname, password_hash, defaultAvatar]
+      `INSERT INTO users (
+         nickname, password_hash, profile_image,
+         tier, line, game_mode, duo_style
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [nickname, password_hash, defaultAvatar, tier, line, game_mode, duo_style]
     );
 
     const user = await get(
