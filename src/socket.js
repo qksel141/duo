@@ -181,6 +181,42 @@ export function markChatRead(partnerId) {
   });
 }
 
+export function emitGameRequest(partnerId) {
+  const sock = getSocket();
+  if (!sock || !partnerId) return;
+  sock.emit('game:request', { partnerId: Number(partnerId) });
+}
+
+export function emitGameConfirm(partnerId) {
+  const sock = getSocket();
+  if (!sock || !partnerId) return;
+  sock.emit('game:confirm', { partnerId: Number(partnerId) });
+}
+
+export function emitGameReject(partnerId) {
+  const sock = getSocket();
+  if (!sock || !partnerId) return;
+  sock.emit('game:reject', { partnerId: Number(partnerId) });
+}
+
+export function emitMatchEndRequest(partnerId) {
+  const sock = getSocket();
+  if (!sock || !partnerId) return;
+  sock.emit('match:end:request', { partnerId: Number(partnerId) });
+}
+
+export function emitMatchEndConfirm(partnerId) {
+  const sock = getSocket();
+  if (!sock || !partnerId) return;
+  sock.emit('match:end:confirm', { partnerId: Number(partnerId) });
+}
+
+export function emitMatchEndReject(partnerId) {
+  const sock = getSocket();
+  if (!sock || !partnerId) return;
+  sock.emit('match:end:reject', { partnerId: Number(partnerId) });
+}
+
 export function disconnectSocket() {
   if (socket) {
     socket.disconnect();

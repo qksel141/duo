@@ -20,8 +20,15 @@ async function postJson(path, body) {
   return data;
 }
 
-export async function signup({ nickname, password }) {
-  const data = await postJson('/auth/signup', { nickname, password });
+export async function signup({ nickname, password, tier, line, game_mode, duo_style }) {
+  const data = await postJson('/auth/signup', {
+    nickname,
+    password,
+    tier,
+    line,
+    game_mode,
+    duo_style,
+  });
   return data.user;
 }
 
