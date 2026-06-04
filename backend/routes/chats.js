@@ -11,10 +11,11 @@ router.get('/list/:userId', async (req, res) => {
       return res.status(400).json({ error: 'userId가 유효하지 않습니다.' });
     }
 
+    // ✨ 중복 방지(GROUP BY)와 최신 시간(MAX)을 적용한 업그레이드 쿼리
     const matches = await all(
       `SELECT
-         m.id AS match_id,
-         m.matched_at,
+         MAX(m.id) AS match_id,
+         MAX(m.matched_at) AS matched_at,
          CASE WHEN m.user_id = ? THEN m.matched_user_id ELSE m.user_id END AS partner_id,
          u.nickname, u.profile_image, u.tier
        FROM matches m
@@ -22,7 +23,8 @@ router.get('/list/:userId', async (req, res) => {
          CASE WHEN m.user_id = ? THEN m.matched_user_id ELSE m.user_id END
        )
        WHERE m.user_id = ? OR m.matched_user_id = ?
-       ORDER BY m.matched_at DESC`,
+       GROUP BY partner_id /* ✨ 핵심: 같은 상대방(partner_id)끼리 하나로 묶어줌 */
+       ORDER BY matched_at DESC`,
       [userId, userId, userId, userId]
     );
 

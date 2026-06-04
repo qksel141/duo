@@ -64,6 +64,7 @@ router.post('/signup', async (req, res) => {
   try {
     const nickname = (req.body?.nickname ?? '').trim();
     const password = req.body?.password ?? '';
+    const riot_tag = (req.body?.riot_tag ?? 'KR1').trim().toUpperCase(); //새로 추가
     const tier = req.body?.tier || null;
     const line = req.body?.line || null;
     const game_mode = req.body?.game_mode || null;
@@ -96,10 +97,10 @@ router.post('/signup', async (req, res) => {
 
     const result = await run(
       `INSERT INTO users (
-         nickname, password_hash, profile_image,
+         nickname, password_hash, riot_tag, profile_image, /* ✨ riot_tag 추가! */
          tier, line, game_mode, duo_style
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nickname, password_hash, defaultAvatar, tier, line, game_mode, duo_style]
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, /* ✨ 물음표도 하나 더 추가! (총 8개) */
+      [nickname, password_hash, riot_tag, defaultAvatar, tier, line, game_mode, duo_style] /* ✨ 배열 세 번째 자리에 riot_tag 추가! */
     );
 
     const user = await get(

@@ -150,3 +150,25 @@ export async function submitReport({ reporter_id, target_user_id, reason }) {
 
   return res.json();
 }
+// ✨ 매칭 종료 시 히스토리를 백엔드로 전송하는 API 함수
+export const createMatchHistory = async (data) => {
+  try {
+    // 백엔드의 matches.js 라우터로 POST 요청 전송
+    const response = await fetch('http://localhost:3000/matches', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data), // { user_id: 내 아이디, matched_user_id: 상대방 아이디 }
+    });
+
+    if (!response.ok) {
+      throw new Error('매칭 히스토리 저장에 실패했습니다.');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('createMatchHistory 에러:', error);
+    throw error;
+  }
+};

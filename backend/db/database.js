@@ -8,6 +8,7 @@ const EXPECTED_COLUMNS = [
   'id',
   'nickname',
   'password_hash',
+  'riot_tag',
   'tier',
   'line',
   'sub_line',
@@ -23,7 +24,7 @@ const LINES = ['탑', '정글', '미드', '원딜', '서포터'];
 const DUO_STYLES = ['상대방한테 맞춰요', '빡겜 유저', '즐겜 유저'];
 
 // 스키마가 바뀔 때마다 이 시그니처를 올려서 자동 마이그레이션 트리거
-const SCHEMA_SIGNATURE = 'v2-nickname-unique-password';
+const SCHEMA_SIGNATURE = 'v3-riot-tag-added';
 
 function resolveDbPath() {
   if (!process.env.DB_PATH) {
@@ -100,6 +101,7 @@ async function createUsersTable() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nickname VARCHAR UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      riot_tag VARCHAR(5),
       tier VARCHAR,
       line TEXT CHECK(line IN ('탑', '정글', '미드', '원딜', '서포터')),
       sub_line TEXT CHECK(
@@ -205,6 +207,7 @@ async function seedTestUsers() {
     INSERT INTO users (
       nickname,
       password_hash,
+      riot_tag,
       tier,
       line,
       sub_line,
@@ -214,7 +217,7 @@ async function seedTestUsers() {
       profile_image,
       duo_style,
       game_mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const testUsers = [
@@ -236,7 +239,7 @@ async function seedTestUsers() {
     for (const user of testUsers) {
       // [nickname, ...rest] → [nickname, password_hash, ...rest]
       const [nickname, ...rest] = user;
-      await run(insertSql, [nickname, seedPasswordHash, ...rest]);
+      await run(insertSql, [nickname, seedPasswordHash, 'KR1', ...rest]);
     }
 
     await run('COMMIT');
@@ -281,6 +284,10 @@ async function initDatabase() {
     console.log('users 테이블 스키마 변경 — 테이블 재생성');
   }
 
+  // 🔥 핵심 추가: 켜질 때마다 매칭과 평가 기록이 담긴 테이블을 흔적도 없이 폭파시킵니다!
+  await exec('DROP TABLE IF EXISTS ratings');
+  await exec('DROP TABLE IF EXISTS matches');
+
   await createUsersTable();
   await createChatsTable();
   await ensureChatsHasReadAt();
@@ -289,7 +296,10 @@ async function initDatabase() {
   await createRatingsTable();
   await createLikesTable();
 
-  await seedTestUsers();
+  // 유저 점수도 무조건 0으로 리셋
+  await exec('UPDATE users SET rating = 0, rating_count = 0, badge_skill = 0, badge_comm = 0, badge_mental = 0');
+
+  await seedTestUsers(); 
   await cleanupOrphans();
 
   console.log('DB 준비 완료');

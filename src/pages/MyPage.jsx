@@ -24,12 +24,31 @@ const MyPage = () => {
 
   const [userData, setUserData] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [historyCount, setHistoryCount] = useState(0);
 
   useEffect(() => {
     if (!myId) {
       navigate('/login', { replace: true });
       return;
     }
+
+    // ✨ 1. 기존 로컬 스토리지 뒤지던 코드 삭제!
+    // const savedChats = JSON.parse(localStorage.getItem('chatHistory')) || [];
+    // setHistoryCount(savedChats.length);
+
+    // ✨ 2. 백엔드에서 갯수를 가져오는 코드로 교체!
+    const fetchMatchCount = async () => {
+      try {
+        const res = await fetch(`http://localhost:3000/matches/${myId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setHistoryCount(data.length); // 서버에서 받아온 데이터 갯수로 셋팅
+        }
+      } catch (err) {
+        console.error('히스토리 갯수 로딩 실패:', err);
+      }
+    };
+    fetchMatchCount();
 
     let cancelled = false;
 
@@ -177,10 +196,25 @@ const MyPage = () => {
           flex items-center justify-between
         "
       >
-
-        <h1 className="text-3xl font-black tracking-tight">
-          MY
-        </h1>
+        {/* ✨ 타이틀과 홈 버튼을 나란히 묶어주는 영역 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate('/', { replace: true })}
+            className="
+              p-2 -ml-2 rounded-full
+              text-stone-400
+              hover:text-white
+              hover:bg-white/10
+              transition-all duration-300
+            "
+          >
+            <Home size={28} />
+          </button>
+          
+          <h1 className="text-3xl font-black tracking-tight">
+            MY
+          </h1>
+        </div>    
 
         <button
           onClick={handleNotification}
@@ -435,7 +469,8 @@ const MyPage = () => {
               </div>
 
               <p className="text-stone-400 leading-relaxed">
-                최근 함께 플레이한 유저 2명이 있습니다.
+                
+                최근 함께 플레이한 유저 {historyCount}명이 있습니다.
                 <br />
                 별점을 남겨주세요!
               </p>
