@@ -5,7 +5,9 @@ import {
   MessageCircle,
   Home as HomeIcon,
   User,
-  LogOut
+  LogOut,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 import { fetchUsers, toProfile } from '../api/users';
@@ -31,7 +33,6 @@ export default function Home() {
   const myId = getCurrentUserId();
 
   const [profiles, setProfiles] = useState([]);
-
   const [onlineUserIds, setOnlineUserIds] = useState([]);
 
   const [removedIds, setRemovedIds] = useState(() => {
@@ -57,33 +58,37 @@ export default function Home() {
     sessionStorage.setItem(getRemovedIdsKey(myId), JSON.stringify(removedIds));
   }, [removedIds, myId]);
 
+  // 로고 클릭 시 거절 내역 초기화하고 처음부터 다시 보기 기능
+  const handleResetProfiles = () => {
+    if (myId) {
+      sessionStorage.removeItem(getRemovedIdsKey(myId));
+    }
+    setRemovedIds([]);
+    setCurrentIndex(0);
+  };
+
   // 실시간 유저 생성/수정 반영
   useEffect(() => {
     if (!myId) return;
 
     const socket = getSocket();
-
     if (!socket) return;
 
     const handleUserCreated = (newUser) => {
       console.log('새 유저 도착', newUser);
-
       if (Number(newUser.id) === Number(myId)) return;
 
       setProfiles((prev) => {
         const alreadyExists = prev.some(
           (profile) => Number(profile.id) === Number(newUser.id)
         );
-
         if (alreadyExists) return prev;
-
         return [...prev, toProfile(newUser)];
       });
     };
 
     const handleUserUpdated = (updatedUser) => {
       console.log('유저 수정 도착', updatedUser);
-
       setProfiles((prev) =>
         prev.map((profile) =>
           Number(profile.id) === Number(updatedUser.id)
@@ -107,7 +112,6 @@ export default function Home() {
     if (!myId) return;
 
     const socket = getSocket();
-
     if (!socket) return;
 
     const handleOnlineUsers = ({ userIds }) => {
@@ -143,7 +147,6 @@ export default function Home() {
     if (!myId) return;
 
     const socket = getSocket();
-
     if (!socket) return;
 
     const onMatch = ({ partner }) => {
@@ -158,11 +161,7 @@ export default function Home() {
       };
 
       setMatchedProfile(matchData);
-
-      sessionStorage.setItem(
-        'currentMatch',
-        JSON.stringify(matchData)
-      );
+      sessionStorage.setItem('currentMatch', JSON.stringify(matchData));
     };
 
     socket.on('match:made', onMatch);
@@ -180,7 +179,6 @@ export default function Home() {
       try {
         setLoading(true);
         setError(null);
-
         const users = await fetchUsers();
 
         if (cancelled) return;
@@ -189,7 +187,6 @@ export default function Home() {
         setCurrentIndex(0);
       } catch (err) {
         if (cancelled) return;
-
         setError(err.message || '알 수 없는 오류');
       } finally {
         if (!cancelled) setLoading(false);
@@ -263,8 +260,7 @@ export default function Home() {
                   JSON.parse(sessionStorage.getItem('activeChats')) || [];
 
                 const alreadyExists = existingChats.some(
-                  (chat) =>
-                    Number(chat.userId) === Number(ack.partner.id)
+                  (chat) => Number(chat.userId) === Number(ack.partner.id)
                 );
 
                 if (!alreadyExists) {
@@ -298,15 +294,12 @@ export default function Home() {
     }, 200);
   };
 
+  // [수정] 거절 버튼 클릭 시 유저를 삭제하지 않고 단순히 다음 카드로 넘어가도록 로직 변경
   const handleXButtonClick = () => {
     if (vAnimState !== '' || profileCount === 0) return;
 
-    const currentProfile = visibleProfiles[currentIndex];
-
-    addRemovedId(currentProfile.id);
-
-    if (currentIndex >= profileCount - 1) {
-      setCurrentIndex(0);
+    if (profileCount > 0) {
+      setCurrentIndex((prev) => (prev + 1) % profileCount);
     }
   };
 
@@ -387,19 +380,17 @@ export default function Home() {
         <div className="wave-line w-[650px]" style={{ top: '70%', animationDuration: '3.8s', animationDelay: '-1.0s' }} />
 
         <div className="absolute top-[20%] -right-[20%] w-[80vw] h-[50vh] rounded-[100px] bg-gradient-to-l from-purple-600/20 via-fuchsia-600/10 to-transparent blur-[120px] animate-bg-wave" />
-
         <div
           className="absolute top-[40%] -left-[20%] w-[70vw] h-[45vh] rounded-[100px] bg-gradient-to-r from-indigo-600/15 via-violet-600/5 to-transparent blur-[130px] animate-bg-wave"
           style={{ animationDelay: '-4s' }}
         />
-
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[30vh] rounded-full bg-purple-500/5 blur-[160px]" />
       </div>
 
       {/* 네비게이션 바 */}
       <header className="w-full max-w-[90%] xl:max-w-[1440px] mx-auto px-4 md:px-8 py-6 flex items-center justify-between z-50">
         <button
-          onClick={() => window.location.reload()}
+          onClick={handleResetProfiles}
           className="text-3xl font-black tracking-tight text-white hover:text-purple-300 transition-colors"
         >
           FInd DUO
@@ -423,11 +414,7 @@ export default function Home() {
           </button>
 
           {currentUser && (
-            <div className="
-              flex items-center gap-3
-              pl-4 ml-2
-              border-l border-white/10
-            ">
+            <div className="flex items-center gap-3 pl-4 ml-2 border-l border-white/10">
               <span className="text-sm text-stone-300">
                 <span className="text-stone-500">접속:</span>{' '}
                 <span className="font-bold text-violet-300">
@@ -440,12 +427,7 @@ export default function Home() {
 
               <button
                 onClick={handleLogout}
-                className="
-                  p-2 rounded-xl
-                  text-stone-400 hover:text-white
-                  hover:bg-white/10
-                  transition-colors
-                "
+                className="p-2 rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
                 title="다른 유저로 로그인"
               >
                 <LogOut size={18} />
@@ -457,14 +439,17 @@ export default function Home() {
 
       {/* 메인 */}
       <main className="flex-1 flex items-center justify-center px-4 pb-28 select-none z-10">
-        <div className="flex items-center gap-16 relative max-w-6xl w-full justify-center">
+        <div className="flex items-start gap-16 relative max-w-6xl w-full justify-center">
 
-          <button
-            onClick={prevSlide}
-            className="w-20 h-20 rounded-full bg-stone-950/40 border border-purple-500/20 flex items-center justify-center text-4xl text-stone-400 hover:text-white hover:scale-110 transition-all z-40"
-          >
-            ←
-          </button>
+          {/* 왼쪽 화살표 버튼 세로 중앙 정렬 */}
+          <div className="h-[680px] flex items-center">
+            <button
+              onClick={prevSlide}
+              className="w-20 h-20 rounded-full bg-stone-950/40 border border-purple-500/20 flex items-center justify-center text-stone-400 hover:text-white hover:scale-110 transition-all z-40"
+            >
+              <ChevronLeft size={36} strokeWidth={2.5} />
+            </button>
+          </div>
 
           <div className="flex flex-col gap-6 items-center">
             <div className="relative w-[400px] h-[680px] flex items-center justify-center">
@@ -545,7 +530,6 @@ export default function Home() {
                       <span className="text-yellow-500 text-sm">
                         {renderStars(profile.rating)}
                       </span>
-
                       <span className="text-stone-300 text-xs font-semibold">
                         {profile.rating.toFixed(1)} ({profile.ratingCount})
                       </span>
@@ -572,72 +556,44 @@ export default function Home() {
             </div>
           </div>
 
-          <button
-            onClick={nextSlide}
-            className="w-20 h-20 rounded-full bg-violet-600/90 flex items-center justify-center text-4xl text-white hover:bg-violet-500 hover:scale-110 transition-all z-40"
-          >
-            →
-          </button>
+          {/* 오른쪽 화살표 버튼 세로 중앙 정렬 */}
+          <div className="h-[680px] flex items-center">
+            <button
+              onClick={nextSlide}
+              className="w-20 h-20 rounded-full bg-violet-600/90 flex items-center justify-center text-white hover:bg-violet-500 hover:scale-110 transition-all z-40"
+            >
+              <ChevronRight size={36} strokeWidth={2.5} />
+            </button>
+          </div>
+
         </div>
       </main>
 
       {/* 하단 네비 */}
-      <nav
-        className="
-          fixed bottom-0 left-0 right-0
-          bg-black/50
-          backdrop-blur-2xl
-          border-t border-purple-500/10
-          z-40
-        "
-      >
-        <div
-          className="
-            max-w-6xl mx-auto
-            flex justify-center items-center
-            gap-24
-            py-5
-          "
-        >
+      <nav className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-2xl border-t border-purple-500/10 z-40">
+        <div className="max-w-6xl mx-auto flex justify-center items-center gap-24 py-5">
           <button
             onClick={() => navigate('/')}
-            className="
-              flex flex-col items-center gap-1
-              text-violet-400 scale-110
-            "
+            className="flex flex-col items-center gap-1 text-violet-400 scale-110"
           >
             <HomeIcon size={26} />
-            <span className="text-xs font-bold">
-              홈
-            </span>
+            <span className="text-xs font-bold">홈</span>
           </button>
 
           <button
             onClick={() => navigate('/my-chats')}
-            className="
-              flex flex-col items-center gap-1
-              text-stone-500 hover:text-white
-              transition-all duration-300
-            "
+            className="flex flex-col items-center gap-1 text-stone-500 hover:text-white transition-all duration-300"
           >
             <MessageCircle size={26} />
-            <span className="text-xs font-medium">
-              채팅
-            </span>
+            <span className="text-xs font-medium">채팅</span>
           </button>
 
           <button
             onClick={() => navigate('/mypage')}
-            className="
-              flex flex-col items-center gap-1
-              text-stone-500 hover:text-white
-              transition-all duration-300
-            "
+            className="flex flex-col items-center gap-1 text-stone-500 hover:text-white transition-all duration-300"
           >
             <User size={26} />
-            <span className="text-xs font-medium">
-              마이페이지
-            </span>
+            <span className="text-xs font-medium">마이페이지</span>
           </button>
         </div>
       </nav>
@@ -661,17 +617,10 @@ export default function Home() {
               />
             </div>
 
-            <h2 className="text-4xl font-black text-white mb-3">
-              매칭 성공!
-            </h2>
-
+            <h2 className="text-4xl font-black text-white mb-3">매칭 성공!</h2>
             <p className="text-stone-300 mb-2">
-              <span className="text-violet-300 font-bold">
-                {matchedProfile.name}
-              </span>
-              님도 나를 선택했어요.
+              <span className="text-violet-300 font-bold">{matchedProfile.name}</span> 님도 나를 선택했어요.
             </p>
-
             <p className="text-sm text-stone-500 mb-8">
               이제 채팅을 통해 함께 플레이할 시간을 정해보세요.
             </p>
