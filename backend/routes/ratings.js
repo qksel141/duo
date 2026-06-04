@@ -12,7 +12,8 @@ router.post('/', async (req, res) => {
       from_user_id,
       to_user_id,
       match_id,
-      score
+      score,
+      badge // ✅ 1. 프론트엔드에서 보낸 뱃지 데이터 받기
     } = req.body;
 
     if (score < 0 || score > 5) {
@@ -28,15 +29,17 @@ router.post('/', async (req, res) => {
         to_user_id,
         match_id,
         score,
+        badge, -- ✅ 2. DB에 뱃지 저장할 칸(Column) 이름 추가
         created_at
-      ) VALUES (?, ?, ?, ?, datetime('now'))
-    `;
+      ) VALUES (?, ?, ?, ?, ?, datetime('now')) 
+    `; // ✅ 물음표(?) 하나 추가
 
     const result = await run(insertQuery, [
       from_user_id,
       to_user_id,
       match_id,
-      score
+      score,
+      badge // ✅ 3. 물음표 자리에 뱃지 데이터 쏙 넣어주기
     ]);
 
     // 평균 별점 계산
