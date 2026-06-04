@@ -324,14 +324,15 @@ const MyPage = () => {
               <div className="flex items-end justify-between">
 
                 <div>
-
+                  {/* 1. 백엔드 점수를 소수점 첫째 자리(예: 4.8)까지 정확하게 보여주기 */}
                   <p className="text-5xl font-black text-white tracking-tight">
-                    {userData.rating || 0}
+                    {Number(userData.rating || 0).toFixed(1)}
                     <span className="text-xl text-stone-500 font-medium">
                       / 5.0
                     </span>
                   </p>
 
+                  {/* 2. 평가 인원수 연동 */}
                   <p className="text-stone-500 mt-2">
                     {userData.rating_count || 0}명 평가
                   </p>
@@ -340,12 +341,28 @@ const MyPage = () => {
 
                 <div className="text-right">
 
-                  <div className="flex text-yellow-400 justify-end mb-3">
-                    <Star size={24} fill="currentColor" />
-                    <Star size={24} fill="currentColor" />
-                    <Star size={24} fill="currentColor" />
-                    <Star size={24} fill="currentColor" />
-                    <Star size={24} fill="currentColor" opacity={0.5} />
+                  {/* 3. 소수점 비율에 맞춰 노란색이 차오르는 상세 별점 게이지 */}
+                  <div className="flex gap-1 justify-end mb-3">
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const score = Number(userData.rating || 0);
+                      // 별에 노란색을 몇 퍼센트 채울지 계산하는 공식
+                      const fillPercent = Math.max(0, Math.min(100, (score - star + 1) * 100));
+                      
+                      return (
+                        <div key={star} className="relative">
+                          {/* 바탕에 깔리는 회색 빈 별 */}
+                          <Star size={24} className="text-stone-700" />
+                          
+                          {/* 점수 퍼센트만큼 덮어씌워지는 노란색 꽉 찬 별 */}
+                          <div
+                            className="absolute top-0 left-0 overflow-hidden"
+                            style={{ width: `${fillPercent}%` }}
+                          >
+                            <Star size={24} className="text-yellow-400 fill-yellow-400" />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <span
