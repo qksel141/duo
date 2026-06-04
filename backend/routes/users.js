@@ -99,6 +99,27 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    // ✅ 1. 이 유저가 받은 뱃지 종류별로 갯수 세어오기 (ratings 테이블)
+    const badges = await all(`
+      SELECT badge, COUNT(*) as count
+      FROM ratings
+      WHERE to_user_id = ? AND badge IS NOT NULL AND badge != ''
+      GROUP BY badge
+    `, [req.params.id]);
+
+    // ✅ 2. 프론트엔드로 보낼 기본 뱃지 갯수를 0으로 세팅
+    user.badge_skill = 0;
+    user.badge_comm = 0;
+    user.badge_mental = 0;
+
+    // ✅ 3. DB에서 세어온 진짜 뱃지 갯수표를 프론트엔드 이름표에 맞춰서 끼워 넣기
+    badges.forEach(b => {
+      if (b.badge === '실력이 뛰어나요') user.badge_skill = b.count;
+      if (b.badge === '소통이 잘 돼요') user.badge_comm = b.count;
+      if (b.badge === '멘탈이 좋아요') user.badge_mental = b.count;
+    });
+
+    // 뱃지 정보까지 꽉꽉 채워진 유저 데이터를 프론트엔드로 발사!
     res.json(user);
   } catch (err) {
     res.status(500).json({

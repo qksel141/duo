@@ -113,7 +113,10 @@ async function createUsersTable() {
       duo_style TEXT CHECK(
         duo_style IN ('상대방한테 맞춰요', '빡겜 유저', '즐겜 유저')
       ),
-      game_mode VARCHAR
+      game_mode VARCHAR,
+      badge_skill INTEGER DEFAULT 0,  -- ✅ 실력 뱃지 카운트용
+      badge_comm INTEGER DEFAULT 0,   -- ✅ 소통 뱃지 카운트용
+      badge_mental INTEGER DEFAULT 0  -- ✅ 멘탈 뱃지 카운트용
     )
   `);
 }
@@ -138,6 +141,7 @@ async function createRatingsTable() {
       to_user_id INTEGER,
       match_id INTEGER,
       score REAL,
+      badge TEXT, -- ✅ 어떤 뱃지를 남겼는지 텍스트로 저장할 칸
       created_at TEXT
     )
   `);

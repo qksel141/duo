@@ -64,6 +64,7 @@ export default function Chat() {
   // 별점 모달
   const [ratingOpen, setRatingOpen] = useState(false);
   const [ratingScore, setRatingScore] = useState(5);
+  const [ratingBadge, setRatingBadge] = useState('');
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingError, setRatingError] = useState(null);
   const [ratingMatchId, setRatingMatchId] = useState(null);
@@ -699,6 +700,7 @@ export default function Chat() {
         to_user_id: partnerId,
         match_id: ratingMatchId,
         score: ratingScore,
+        badge: ratingBadge,
       });
       setRatingOpen(false);
       removeThisChatEverywhere();
@@ -872,8 +874,8 @@ export default function Chat() {
               <div key={msg.id}>
                 <div className={`flex ${msg.sender === 'me' ? 'justify-end' : msg.sender === 'system' ? 'justify-center' : 'justify-start'}`}>
                   <div className={`
-                    max-w-[70%] px-5 py-3 rounded-2xl text-sm font-medium
-                    ${msg.sender === 'me'
+                      max-w-[70%] px-5 py-3 rounded-2xl text-sm font-medium break-all break-words whitespace-pre-wrap
+                      ${msg.sender === 'me'
                       ? msg.failed
                         ? 'bg-red-600/40 text-white border border-red-500/40'
                         : `bg-violet-600 text-white ${msg.pending ? 'opacity-70' : ''}`
@@ -1127,6 +1129,23 @@ export default function Chat() {
                 </button>
               ))}
             </div>
+            {/* 별점 선택 아래에 들어갈 칭찬 뱃지 UI */}
+            <div className="flex flex-col gap-2 mb-6">
+            <p className="text-xs text-stone-400 mb-1">칭찬 뱃지를 함께 남겨주세요 (선택)</p>
+              {['실력이 뛰어나요', '소통이 잘 돼요', '멘탈이 좋아요'].map(badge => (
+                <button
+      key={badge}
+      onClick={() => setRatingBadge(ratingBadge === badge ? '' : badge)}
+      className={`py-2.5 px-4 rounded-xl text-sm font-bold border transition-all ${
+        ratingBadge === badge
+          ? 'bg-violet-600 border-violet-500 text-white'
+          : 'bg-white/5 border-white/10 text-stone-400 hover:bg-white/10'
+      }`}
+    >
+      {badge}
+    </button>
+  ))}
+</div>
 
             {ratingError && (
               <div className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2 mb-4">
