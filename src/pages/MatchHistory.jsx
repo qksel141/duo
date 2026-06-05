@@ -1,37 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Star, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUserId } from '../auth';
 
 export default function MatchHistory() {
   const navigate = useNavigate();
+  const myId = getCurrentUserId(); // ✨ 1. 내 아이디를 가져오는 코드 추가!
 
   const [history, setHistory] = useState([]);
 
+  // ✨ 2. 기존 11번~35번 줄을 아래 코드로 통째로 교체! (이제 백엔드 서버에 직접 물어봅니다)
   useEffect(() => {
-    const savedChats =
-      JSON.parse(localStorage.getItem('chatHistory')) || [];
+    const loadHistory = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/matches/${myId}`);
+        if (!response.ok) throw new Error('히스토리 로딩 실패');
+        
+        const data = await response.json();
 
-    const savedRatings =
-      JSON.parse(localStorage.getItem('savedRatings')) || [];
+        // 백엔드에서 받아온 데이터를 화면에 그리기 좋게 포맷팅
+        const formatted = data.map((row) => ({
+          id: row.id,
+          name: row.name,
+          tag: row.tag || 'KR1',
+          date: row.date,
+          img: row.img,
+          rating: 0,
+          isRated: false
+        }));
 
-    const formatted = savedChats.map((chat) => {
-      const existingRating = savedRatings.find(
-        (rating) => Number(rating.id) === Number(chat.userId)
-      );
+        setHistory(formatted);
+      } catch (error) {
+        console.error('히스토리 정보를 가져오지 못했습니다:', error);
+      }
+    };
 
-      return {
-        id: chat.userId,
-        name: chat.name,
-        tag: chat.tag || 'KR1',
-        date: chat.endedAt,
-        img: chat.img,
-        rating: existingRating ? existingRating.rating : 0,
-        isRated: !!existingRating
-      };
-    });
-
-    setHistory(formatted);
-  }, []);
+    if (myId) {
+      loadHistory();
+    }
+  }, [myId]);
 
   const handleStarClick = (matchId, newRating) => {
     setHistory((prev) =>

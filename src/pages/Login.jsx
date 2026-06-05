@@ -23,7 +23,7 @@ export default function Login() {
   const [line, setLine] = useState('');
   const [gameMode, setGameMode] = useState('');
   const [duoStyle, setDuoStyle] = useState('');
-
+  const [riotTag, setRiotTag] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -34,6 +34,7 @@ export default function Login() {
     setError(null);
     setPassword('');
     setPasswordConfirm('');
+    setRiotTag('');
   };
 
   const handleSubmit = async (e) => {
@@ -57,8 +58,9 @@ export default function Login() {
         setError('비밀번호 확인이 일치하지 않습니다.');
         return;
       }
-      if (!tier || !line || !gameMode || !duoStyle) {
-        setError('티어 / 주 포지션 / 모드 / 스타일을 모두 선택해 주세요.');
+      // 아래 줄 수정 (riotTag 검사 추가)
+      if (!riotTag || !tier || !line || !gameMode || !duoStyle) {
+        setError('라이엇 태그 / 티어 / 포지션 / 모드 / 스타일을 모두 입력해 주세요.');
         return;
       }
     }
@@ -70,6 +72,7 @@ export default function Login() {
         ? await signup({
             nickname: trimmedNickname,
             password,
+            riot_tag: riotTag, // 백엔드로 보낼 짐싸기에 태그 추가!
             tier,
             line,
             game_mode: gameMode,
@@ -124,24 +127,50 @@ export default function Login() {
           "
         >
 
-          <div>
-            <label className="block text-xs font-bold text-stone-400 mb-2">
-              닉네임
-            </label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              autoComplete="username"
-              maxLength={20}
-              placeholder="예: 정글왕"
-              className="
-                w-full h-12 px-4 rounded-xl
-                bg-black/40 border border-white/10
-                outline-none focus:border-violet-500
-                text-white placeholder:text-stone-600
-              "
-            />
+          <div className="flex gap-3">
+            {/* 닉네임 구역 */}
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-stone-400 mb-2">
+                닉네임
+              </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                autoComplete="username"
+                maxLength={20}
+                placeholder="예: 정글왕"
+                className="
+                  w-full h-12 px-4 rounded-xl
+                  bg-black/40 border border-white/10
+                  outline-none focus:border-violet-500
+                  text-white placeholder:text-stone-600
+                "
+              />
+            </div>
+
+            {/* 태그 구역 (회원가입일 때만 우측에 등장) */}
+            {isSignup && (
+              <div className="w-[35%]">
+                <label className="block text-xs font-bold text-stone-400 mb-2">
+                  태그
+                </label>
+                <div className="flex items-center bg-black/40 border border-white/10 rounded-xl focus-within:border-violet-500 overflow-hidden h-12">
+                  <span className="pl-3 pr-1 text-stone-500 font-bold">#</span>
+                  <input
+                    type="text"
+                    value={riotTag}
+                    onChange={(e) => setRiotTag(e.target.value.replace('#', ''))}
+                    maxLength={5}
+                    placeholder="KR1"
+                    className="
+                      w-full h-full pr-3 bg-transparent outline-none
+                      text-white placeholder:text-stone-600 uppercase
+                    "
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -183,6 +212,7 @@ export default function Login() {
                   "
                 />
               </div>
+              
 
               <div>
                 <label className="block text-xs font-bold text-stone-400 mb-2">

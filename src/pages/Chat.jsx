@@ -20,7 +20,7 @@ import {
   emitMatchEndReject,
   getSocket,
 } from '../socket';
-import { fetchChatHistory, createRating, submitReport } from '../api/users';
+import { fetchChatHistory, createRating, submitReport, createMatchHistory } from '../api/users';
 
 function rowToMessage(row, myId) {
   return {
@@ -464,7 +464,7 @@ export default function Chat() {
       setIncomingRequest({ type: 'end' });
     };
 
-    const handleMatchEnded = ({ partnerA, partnerB, matchId }) => {
+    const handleMatchEnded = async ({ partnerA, partnerB, matchId }) => { // ✨ async 추가!
       const partner = Number(partnerIdRef.current);
       const me = Number(myId);
       const involved =
@@ -479,6 +479,17 @@ export default function Chat() {
       upsertMessage(makeLocalSystemMessage('매칭이 종료되었습니다. 상대에게 별점을 남겨주세요.'));
       setRatingMatchId(matchId || null);
       setRatingOpen(true);
+
+      // ✨ 아래부터 새로 추가! (백엔드로 매칭 히스토리 기록 전송)
+      try {
+        await createMatchHistory({
+          user_id: me,
+          matched_user_id: partner
+        });
+      } catch (err) {
+        console.error("매칭 히스토리 백엔드 보고 실패:", err);
+      }
+      // ✨ 여기까지 추가!
     };
 
     const handleEndRejected = ({ fromUserId }) => {
