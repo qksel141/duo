@@ -9,6 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import { fetchUserById, updateUser } from '../api/users';
 import { getCurrentUserId, setCurrentUser } from '../auth';
 
+const DEFAULT_AVATAR =
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=duo-default';
+
 const EditProfile = () => {
   const navigate = useNavigate();
 
@@ -19,9 +22,7 @@ const EditProfile = () => {
   const [riotTag, setRiotTag] = useState('KR1');
   const [bio, setBio] = useState('');
 
-  const [profileImage, setProfileImage] = useState(
-    'https://i.namu.wiki/i/EZNaF5XmAKKF4LgVE_D0sBSaH1aalphJ5BDr9uGBLqiuxwyzTZygUkCPgTOAhqyn6wBRonLpdkxSQ_EWxfrER-JzvuFbc6m8TjEQXM-ERJzvyTcGPcNlJj3KoxBFHvEfESfntDdLIP_Vu1pWadJUQg.webp'
-  );
+  const [profileImage, setProfileImage] = useState('');
 
   const [tier, setTier] = useState('Challenger');
   const [isTierOpen, setIsTierOpen] = useState(false);
@@ -73,10 +74,7 @@ const EditProfile = () => {
         setBio(data.intro || '');
         setPlayStyle(data.duo_style || '빡겜 유저');
         setGameMode(data.game_mode || '랭크');
-        setProfileImage(
-          data.profile_image ||
-            'https://i.namu.wiki/i/EZNaF5XmAKKF4LgVE_D0sBSaH1aalphJ5BDr9uGBLqiuxwyzTZygUkCPgTOAhqyn6wBRonLpdkxSQ_EWxfrER-JzvuFbc6m8TjEQXM-ERJzvyTcGPcNlJj3KoxBFHvEfESfntDdLIP_Vu1pWadJUQg.webp'
-        );
+        setProfileImage(data.profile_image || '');
       } catch (error) {
         console.error('데이터를 불러오지 못했습니다.', error);
       }
@@ -118,11 +116,13 @@ const EditProfile = () => {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (file) {
-      setProfileImage(URL.createObjectURL(file));
-    }
+    // blob: URL은 다른 사용자/새로고침 시 깨지므로 base64로 저장한다
+    const reader = new FileReader();
+    reader.onload = () => setProfileImage(reader.result);
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -152,7 +152,8 @@ const EditProfile = () => {
         intro: bio,
         duo_style: playStyle,
         game_mode: gameMode,
-        profile_image: profileImage
+        // blob:은 현재 탭에서만 유효 → 저장하지 않음. 비었으면 null
+        profile_image: profileImage.startsWith('blob:') ? null : profileImage || null,
       };
 
       const updatedUser = await updateUser(myId, updateData);
@@ -312,7 +313,7 @@ const EditProfile = () => {
               >
 
                 <img
-                  src={profileImage}
+                  src={profileImage || DEFAULT_AVATAR}
                   alt="프로필"
                   className="w-full h-full object-cover"
                 />
