@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Star, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUserId } from '../auth';
+import { fetchMatchHistory } from '../api/users';
 
 export default function MatchHistory() {
   const navigate = useNavigate();
@@ -13,10 +14,7 @@ export default function MatchHistory() {
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/matches/${myId}`);
-        if (!response.ok) throw new Error('히스토리 로딩 실패');
-        
-        const data = await response.json();
+        const data = await fetchMatchHistory(myId);
 
         // 백엔드에서 받아온 데이터를 화면에 그리기 좋게 포맷팅
         const formatted = data.map((row) => ({

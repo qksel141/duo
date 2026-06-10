@@ -2,11 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, Send, Gamepad2, Flag, RotateCcw,
   Home as HomeIcon, MessageCircle, User as UserIcon,
-  Shield, Star, X, Check,
+  Shield, Star, X, Check, LogOut,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { getCurrentUserId } from '../auth';
+import { getCurrentUserId, getCurrentUser } from '../auth';
+import { getTierBadgeClass, getTierShortLabel } from '../utils/tier';
 import {
   joinChatRoom,
   subscribeChatIncoming,
@@ -18,9 +19,14 @@ import {
   emitMatchEndRequest,
   emitMatchEndConfirm,
   emitMatchEndReject,
+  emitChatExit,
+  subscribePartnerLeft,
   getSocket,
 } from '../socket';
-import { fetchChatHistory, createRating, submitReport, createMatchHistory } from '../api/users';
+import { fetchChatHistory, createRating, submitReport, createMatchHistory, fetchUserById } from '../api/users';
+
+const DEFAULT_AVATAR =
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=duo-default';
 
 function rowToMessage(row, myId) {
   return {
@@ -41,6 +47,13 @@ function makeLocalSystemMessage(text) {
   };
 }
 
+const SUGGESTED_MESSAGES = [
+  '안녕하세요! 같이 듀오 하실까요?',
+  '주 포지션이 어떻게 되세요?',
+  '마이크 가능하세요?',
+  '몇 판 정도 같이 해볼까요?',
+];
+
 export default function Chat() {
   const navigate = useNavigate();
   const bottomRef = useRef(null);
@@ -50,6 +63,7 @@ export default function Chat() {
   const [matchedUser, setMatchedUser] = useState(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [isEndedChat, setIsEndedChat] = useState(false);
+  const [partnerLeft, setPartnerLeft] = useState(false);
   const [isExploding, setIsExploding] = useState(false);
   const [input, setInput] = useState('');
 
@@ -74,6 +88,19 @@ export default function Chat() {
   const [reportReason, setReportReason] = useState('');
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
+
+  // 채팅방 나가기 확인 모달
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+
+  // 상대 프로필 액션 메뉴 / 상세 보기
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [partnerProfile, setPartnerProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+  const [profileIsSelf, setProfileIsSelf] = useState(false); // 내 프로필 보기 여부
+
+  const myAvatar = getCurrentUser()?.profile_image || DEFAULT_AVATAR;
 
   const seenMessageIdsRef = useRef(new Set());
   const pendingCounterRef = useRef(0);
@@ -340,6 +367,7 @@ export default function Chat() {
     let cancelled = false;
 
     seenMessageIdsRef.current = new Set();
+    setPartnerLeft(false);
     setHistoryLoading(true);
     setHistoryError(null);
 
@@ -509,6 +537,18 @@ export default function Chat() {
 
     const unsubscribe = subscribeChatIncoming(handleIncoming);
 
+    // 상대가 채팅방을 나감 → 안내 메시지 + 채팅 종료 처리
+    const unsubscribePartnerLeft = subscribePartnerLeft(({ fromUserId }) => {
+      if (Number(fromUserId) !== Number(partnerIdRef.current)) return;
+      upsertMessage(makeLocalSystemMessage('상대가 채팅방을 나갔어요.'));
+      setPartnerLeft(true);
+      setIsEndedChat(true);
+      setGameStarted(false);
+      setPartnerTyping(false);
+      setOutgoingRequest(null);
+      setIncomingRequest(null);
+    });
+
     return () => {
       cancelled = true;
       roomReadyRef.current = false;
@@ -516,6 +556,7 @@ export default function Chat() {
       clearTimeout(partnerTypingClearTimerRef.current);
       clearTimeout(typingStopTimerRef.current);
       unsubscribe();
+      unsubscribePartnerLeft();
       if (sock) {
         sock.off('chat:read:update', handleReadUpdate);
         sock.off('chat:typing', handlePartnerTyping);
@@ -556,6 +597,29 @@ export default function Chat() {
     sessionStorage.removeItem('selectedChat');
   };
 
+  // 채팅방 나가기 — 매칭 해제 + 상대 알림 + 목록에서 제거
+  const handleLeaveChat = () => {
+    const partnerId = getChatUserId();
+    setLeaveConfirmOpen(false);
+
+    // 떠나는 나도 removedIds에서 상대 제거 → 메인에서 다시 보이도록
+    if (myId && partnerId) {
+      try {
+        const key = `removedIds:${myId}`;
+        const list = JSON.parse(sessionStorage.getItem(key)) || [];
+        const next = list.filter((id) => Number(id) !== Number(partnerId));
+        sessionStorage.setItem(key, JSON.stringify(next));
+      } catch {
+        /* sessionStorage 접근 실패는 무시 */
+      }
+
+      emitChatExit(partnerId);
+    }
+
+    removeThisChatEverywhere();
+    navigate('/my-chats', { replace: true });
+  };
+
   const handleBack = () => {
     sessionStorage.removeItem('selectedChat');
 
@@ -570,16 +634,15 @@ export default function Chat() {
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const sendMessage = async (rawText) => {
+    const text = (rawText || '').trim();
+    if (!text) return;
     if (isEndedChat || isExploding) return;
     if (!matchedUser) return;
 
     const partnerId = getChatUserId();
     if (!partnerId) return;
 
-    const text = input.trim();
-    setInput('');
     stopMyTyping();
 
     pendingCounterRef.current += 1;
@@ -643,6 +706,17 @@ export default function Chat() {
       markFailed();
       setHistoryError(err.message || '실시간 연결이 끊겼습니다.');
     }
+  };
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const text = input.trim();
+    setInput('');
+    sendMessage(text);
+  };
+
+  const handleSuggestedMessage = (text) => {
+    sendMessage(text);
   };
 
   // 게임 시작: 양쪽 동의 필요
@@ -757,6 +831,49 @@ export default function Chat() {
     }
   };
 
+  // 상대 프로필 사진 클릭 → 액션 메뉴 열기
+  const openActionMenu = () => {
+    if (!matchedUser) return;
+    setActionMenuOpen(true);
+  };
+
+  // 프로필 모달 열고 데이터 로드 (공통)
+  const openProfile = async (targetId, isSelf) => {
+    if (!targetId) return;
+
+    setProfileIsSelf(isSelf);
+    setProfileOpen(true);
+    setProfileLoading(true);
+    setProfileError(null);
+    setPartnerProfile(null);
+
+    try {
+      const data = await fetchUserById(targetId);
+      setPartnerProfile(data);
+    } catch (err) {
+      setProfileError(err.message || '프로필을 불러오지 못했습니다.');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // 액션 메뉴 → 상대 정보보기
+  const handleViewProfile = () => {
+    setActionMenuOpen(false);
+    openProfile(getChatUserId(), false);
+  };
+
+  // 내 메시지 아바타 → 내 프로필 보기 (신고 없음)
+  const openMyProfile = () => {
+    openProfile(myId, true);
+  };
+
+  // 액션 메뉴 → 신고하기
+  const handleReportFromMenu = () => {
+    setActionMenuOpen(false);
+    setReportOpen(true);
+  };
+
   const handleRestartMatch = () => {
     if (!matchedUser || isExploding) return;
     setIsEndedChat(false);
@@ -806,11 +923,17 @@ export default function Chat() {
 
             {matchedUser && (
               <>
-                <img
-                  src={matchedUser.img}
-                  alt={matchedUser.name}
-                  className="w-12 h-12 rounded-full object-cover border border-violet-500/40"
-                />
+                <button
+                  onClick={openActionMenu}
+                  className="rounded-full transition-all hover:scale-105"
+                  title="상대 프로필"
+                >
+                  <img
+                    src={matchedUser.img || DEFAULT_AVATAR}
+                    alt={matchedUser.name}
+                    className="w-12 h-12 rounded-full object-cover border border-violet-500/40 hover:border-violet-400"
+                  />
+                </button>
 
                 <div>
                   <h2 className="text-lg font-black">{matchedUser.name}</h2>
@@ -826,23 +949,41 @@ export default function Chat() {
             )}
           </div>
 
-          {/* 신고 버튼 */}
+          {/* 신고 / 나가기 버튼 */}
           {matchedUser && (
-            <button
-              onClick={() => setReportOpen(true)}
-              className="
-                flex items-center gap-1.5 px-3 py-2 rounded-xl
-                bg-red-500/10 hover:bg-red-500/20
-                text-red-300 hover:text-red-200
-                text-xs font-black
-                border border-red-500/30
-                transition-all
-              "
-              title="채팅 상대 신고"
-            >
-              <Shield size={14} />
-              신고
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setReportOpen(true)}
+                className="
+                  flex items-center gap-1.5 px-3 py-2 rounded-xl
+                  bg-red-500/10 hover:bg-red-500/20
+                  text-red-300 hover:text-red-200
+                  text-xs font-black
+                  border border-red-500/30
+                  transition-all
+                "
+                title="채팅 상대 신고"
+              >
+                <Shield size={14} />
+                신고
+              </button>
+
+              <button
+                onClick={() => setLeaveConfirmOpen(true)}
+                className="
+                  flex items-center gap-1.5 px-3 py-2 rounded-xl
+                  bg-white/5 hover:bg-white/10
+                  text-stone-300 hover:text-white
+                  text-xs font-black
+                  border border-white/10
+                  transition-all
+                "
+                title="채팅방 나가기"
+              >
+                <LogOut size={14} />
+                나가기
+              </button>
+            </div>
           )}
         </header>
 
@@ -866,8 +1007,31 @@ export default function Chat() {
           )}
 
           {!historyLoading && !historyError && messages.length === 0 && (
-            <div className="text-center text-stone-500 text-sm">
-              아직 주고받은 메시지가 없습니다. 먼저 인사를 보내보세요!
+            <div className="text-center">
+              <p className="text-stone-500 text-sm">
+                아직 주고받은 메시지가 없습니다. 추천 메시지로 먼저 인사를 보내보세요!
+              </p>
+
+              {!isEndedChat && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {SUGGESTED_MESSAGES.map((text) => (
+                    <button
+                      key={text}
+                      onClick={() => handleSuggestedMessage(text)}
+                      disabled={isExploding}
+                      className="
+                        px-4 py-2 rounded-full text-sm font-medium
+                        bg-violet-600/15 text-violet-200
+                        border border-violet-500/30
+                        hover:bg-violet-600/25 hover:text-white
+                        transition-all disabled:opacity-40
+                      "
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -881,16 +1045,34 @@ export default function Chat() {
               }
             }
 
-            return messages.map((msg) => (
+            return messages.map((msg) => {
+              const isMe = msg.sender === 'me';
+              const isSystem = msg.sender === 'system';
+
+              return (
               <div key={msg.id}>
-                <div className={`flex ${msg.sender === 'me' ? 'justify-end' : msg.sender === 'system' ? 'justify-center' : 'justify-start'}`}>
+                <div className={`flex items-end gap-2 ${isMe ? 'justify-end' : isSystem ? 'justify-center' : 'justify-start'}`}>
+                  {!isMe && !isSystem && (
+                    <button
+                      onClick={openActionMenu}
+                      className="shrink-0 self-end transition-all hover:scale-110"
+                      title="상대 프로필"
+                    >
+                      <img
+                        src={matchedUser?.img || DEFAULT_AVATAR}
+                        alt={matchedUser?.name || '상대'}
+                        className="w-9 h-9 rounded-full object-cover border border-white/10 hover:border-violet-400"
+                      />
+                    </button>
+                  )}
+
                   <div className={`
                       max-w-[70%] px-5 py-3 rounded-2xl text-sm font-medium break-all break-words whitespace-pre-wrap
-                      ${msg.sender === 'me'
+                      ${isMe
                       ? msg.failed
                         ? 'bg-red-600/40 text-white border border-red-500/40'
                         : `bg-violet-600 text-white ${msg.pending ? 'opacity-70' : ''}`
-                      : msg.sender === 'system'
+                      : isSystem
                         ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20'
                         : 'bg-white/10 text-stone-200 border border-white/10'}
                   `}>
@@ -899,6 +1081,20 @@ export default function Chat() {
                       <span className="ml-2 text-[10px] font-bold text-red-200">전송 실패</span>
                     )}
                   </div>
+
+                  {isMe && (
+                    <button
+                      onClick={openMyProfile}
+                      className="shrink-0 self-end transition-all hover:scale-110"
+                      title="내 프로필"
+                    >
+                      <img
+                        src={myAvatar}
+                        alt="나"
+                        className="w-9 h-9 rounded-full object-cover border border-white/10 hover:border-violet-400"
+                      />
+                    </button>
+                  )}
                 </div>
 
                 {msg.id === lastReadByPartnerId && (
@@ -907,11 +1103,17 @@ export default function Chat() {
                   </div>
                 )}
               </div>
-            ));
+              );
+            });
           })()}
 
           {partnerTyping && !isEndedChat && (
-            <div className="flex justify-start">
+            <div className="flex items-end gap-2 justify-start">
+              <img
+                src={matchedUser?.img || DEFAULT_AVATAR}
+                alt={matchedUser?.name || '상대'}
+                className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0"
+              />
               <div className="bg-white/10 border border-white/10 px-4 py-3 rounded-2xl flex items-center gap-1">
                 <span className="typing-dot" style={{ animationDelay: '0s' }} />
                 <span className="typing-dot" style={{ animationDelay: '0.15s' }} />
@@ -943,7 +1145,17 @@ export default function Chat() {
         ">
           <div className="max-w-4xl mx-auto space-y-3">
 
-            {isEndedChat ? (
+            {partnerLeft ? (
+              <div className="
+                w-full py-4 rounded-2xl
+                bg-stone-800/60 border border-white/10
+                text-stone-400 font-bold
+                flex items-center justify-center gap-2
+              ">
+                <Flag size={18} />
+                상대가 채팅방을 나가 더 이상 대화할 수 없어요.
+              </div>
+            ) : isEndedChat ? (
               <button
                 onClick={handleRestartMatch}
                 disabled={isExploding}
@@ -1021,27 +1233,29 @@ export default function Chat() {
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
-                disabled={isEndedChat || isExploding}
+                disabled={isEndedChat || isExploding || partnerLeft}
                 placeholder={
-                  isEndedChat
-                    ? '종료된 채팅방에서는 메시지를 보낼 수 없습니다.'
-                    : '메시지를 입력하세요...'
+                  partnerLeft
+                    ? '상대가 채팅방을 나갔습니다.'
+                    : isEndedChat
+                      ? '종료된 채팅방에서는 메시지를 보낼 수 없습니다.'
+                      : '메시지를 입력하세요...'
                 }
                 className={`
                   flex-1 h-14 rounded-2xl
                   bg-white/5 border border-white/10
                   px-5 outline-none focus:border-violet-500
-                  ${isEndedChat || isExploding ? 'text-stone-500 cursor-not-allowed' : 'text-white'}
+                  ${isEndedChat || isExploding || partnerLeft ? 'text-stone-500 cursor-not-allowed' : 'text-white'}
                 `}
               />
 
               <button
                 onClick={handleSend}
-                disabled={isEndedChat || isExploding}
+                disabled={isEndedChat || isExploding || partnerLeft}
                 className={`
                   w-14 h-14 rounded-2xl
                   flex items-center justify-center
-                  ${isEndedChat || isExploding
+                  ${isEndedChat || isExploding || partnerLeft
                     ? 'bg-stone-800 text-stone-500 cursor-not-allowed'
                     : 'bg-violet-600 hover:bg-violet-500 text-white'}
                 `}
@@ -1112,6 +1326,189 @@ export default function Chat() {
                 <Check size={18} /> 수락
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 채팅방 나가기 확인 모달 */}
+      {leaveConfirmOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md px-4"
+          onClick={() => setLeaveConfirmOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm bg-[#12091f] border border-violet-500/30 rounded-3xl p-7 text-center shadow-[0_0_60px_rgba(124,58,237,0.45)]"
+          >
+            <h3 className="text-2xl font-black mb-3">채팅방 나가기</h3>
+            <p className="text-stone-300 mb-7">
+              정말 나가시겠습니까?
+              <br />
+              <span className="text-stone-500 text-sm">
+                채팅방이 목록에서 사라집니다.
+              </span>
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLeaveConfirmOpen(false)}
+                className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-stone-300 font-bold hover:bg-white/10"
+              >
+                아니오
+              </button>
+              <button
+                onClick={handleLeaveChat}
+                className="flex-1 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold flex items-center justify-center gap-2"
+              >
+                <LogOut size={18} /> 네
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 상대 프로필 액션 메뉴 (정보보기 / 신고하기) */}
+      {actionMenuOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md px-4"
+          onClick={() => setActionMenuOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-xs bg-[#12091f] border border-violet-500/30 rounded-3xl p-5 shadow-[0_0_60px_rgba(124,58,237,0.45)]"
+          >
+            <div className="flex items-center gap-3 mb-5">
+              <img
+                src={matchedUser?.img || DEFAULT_AVATAR}
+                alt={matchedUser?.name}
+                className="w-12 h-12 rounded-full object-cover border border-violet-500/40"
+              />
+              <div>
+                <p className="font-black text-white">{matchedUser?.name}</p>
+                <p className="text-xs text-stone-400">매칭된 상대</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleViewProfile}
+              className="w-full mb-2 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold flex items-center justify-center gap-2 transition-all"
+            >
+              <UserIcon size={18} /> 상대 정보보기
+            </button>
+
+            <button
+              onClick={handleReportFromMenu}
+              className="w-full py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold border border-red-500/30 flex items-center justify-center gap-2 transition-all"
+            >
+              <Shield size={18} /> 신고하기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 상대 상세 프로필 모달 */}
+      {profileOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md px-4"
+          onClick={() => setProfileOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm bg-[#12091f] border border-violet-500/30 rounded-3xl p-7 shadow-[0_0_60px_rgba(124,58,237,0.45)]"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-black text-white">
+                {profileIsSelf ? '내 프로필' : '상대 프로필'}
+              </h3>
+              <button
+                onClick={() => setProfileOpen(false)}
+                className="p-2 rounded-full text-stone-500 hover:text-white hover:bg-white/5"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {profileLoading && (
+              <div className="py-10 text-center text-stone-400 text-sm">
+                프로필 불러오는 중...
+              </div>
+            )}
+
+            {!profileLoading && profileError && (
+              <div className="py-6 text-center text-red-300 text-sm bg-red-500/10 border border-red-500/30 rounded-2xl">
+                {profileError}
+              </div>
+            )}
+
+            {!profileLoading && !profileError && partnerProfile && (
+              <>
+                <div className="flex flex-col items-center text-center mb-6">
+                  <img
+                    src={partnerProfile.profile_image || DEFAULT_AVATAR}
+                    alt={partnerProfile.nickname}
+                    className="w-24 h-24 rounded-full object-cover border border-violet-500/40 shadow-[0_0_30px_rgba(124,58,237,0.25)]"
+                  />
+                  <h4 className="mt-4 text-2xl font-black text-white">
+                    {partnerProfile.nickname}
+                  </h4>
+                  {(partnerProfile.riot_name || partnerProfile.riot_tag) && (
+                    <p className="mt-1 text-sm font-bold text-stone-300">
+                      {partnerProfile.riot_name || partnerProfile.nickname}
+                      <span className="text-stone-500 font-medium ml-1">
+                        #{partnerProfile.riot_tag || 'KR1'}
+                      </span>
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex items-center gap-2">
+                    {partnerProfile.tier && (
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-black ${getTierBadgeClass(partnerProfile.tier)}`}>
+                        {getTierShortLabel(partnerProfile.tier)}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-xs font-bold text-yellow-400">
+                      <Star size={14} className="fill-yellow-400" />
+                      {Number(partnerProfile.rating || 0).toFixed(1)}
+                      <span className="text-stone-500 font-medium">
+                        ({partnerProfile.rating_count || 0})
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between bg-black/30 border border-white/5 rounded-2xl px-5 py-3">
+                    <span className="text-stone-500 font-medium text-sm">주 게임 모드</span>
+                    <span className="font-bold text-violet-300 text-sm">{partnerProfile.game_mode || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-black/30 border border-white/5 rounded-2xl px-5 py-3">
+                    <span className="text-stone-500 font-medium text-sm">주 포지션</span>
+                    <span className="font-bold text-white text-sm">{partnerProfile.line || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-black/30 border border-white/5 rounded-2xl px-5 py-3">
+                    <span className="text-stone-500 font-medium text-sm">플레이 스타일</span>
+                    <span className="font-bold text-orange-400 text-sm">{partnerProfile.duo_style || '-'}</span>
+                  </div>
+                  <div className="bg-black/30 border border-white/5 rounded-2xl px-5 py-3">
+                    <p className="text-stone-500 font-medium text-sm mb-1">한줄 소개</p>
+                    <p className="text-stone-200 text-sm leading-relaxed">
+                      {partnerProfile.intro || '자기소개가 없습니다.'}
+                    </p>
+                  </div>
+                </div>
+
+                {!profileIsSelf && (
+                  <button
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setReportOpen(true);
+                    }}
+                    className="w-full mt-6 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold border border-red-500/30 flex items-center justify-center gap-2 transition-all"
+                  >
+                    <Shield size={18} /> 신고하기
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

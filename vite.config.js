@@ -21,12 +21,14 @@ export default defineConfig({
     // localhost / 127.0.0.1 모두 접속 가능 (Windows IPv6 단독 바인딩 방지)
     host: true,
     proxy: {
+      '/auth': proxyConfig,
       '/users': proxyConfig,
       '/health': proxyConfig,
       '/chats': proxyConfig,
       '/reports': proxyConfig,
       '/matches': proxyConfig,
       '/ratings': proxyConfig,
+      '/likes': proxyConfig,
       '/socket.io': wsProxyConfig,
     },
   },

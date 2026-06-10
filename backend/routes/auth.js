@@ -64,11 +64,13 @@ router.post('/signup', async (req, res) => {
   try {
     const nickname = (req.body?.nickname ?? '').trim();
     const password = req.body?.password ?? '';
+    const riot_name = (req.body?.riot_name ?? '').trim(); // 롤 인게임 닉네임
     const riot_tag = (req.body?.riot_tag ?? 'KR1').trim().toUpperCase(); //새로 추가
     const tier = req.body?.tier || null;
     const line = req.body?.line || null;
     const game_mode = req.body?.game_mode || null;
     const duo_style = req.body?.duo_style || null;
+    const profile_image = req.body?.profile_image || null; // 안 넣으면 없는 걸로
 
     const errors = validateCredentials(nickname, password);
     errors.push(...validateProfile({ tier, line, game_mode, duo_style }));
@@ -92,15 +94,12 @@ router.post('/signup', async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10);
 
-    const defaultAvatar =
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nickname)}`;
-
     const result = await run(
       `INSERT INTO users (
-         nickname, password_hash, riot_tag, profile_image, /* ✨ riot_tag 추가! */
+         nickname, password_hash, riot_name, riot_tag, profile_image,
          tier, line, game_mode, duo_style
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, /* ✨ 물음표도 하나 더 추가! (총 8개) */
-      [nickname, password_hash, riot_tag, defaultAvatar, tier, line, game_mode, duo_style] /* ✨ 배열 세 번째 자리에 riot_tag 추가! */
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nickname, password_hash, riot_name, riot_tag, profile_image, tier, line, game_mode, duo_style]
     );
 
     const user = await get(

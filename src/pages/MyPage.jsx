@@ -11,7 +11,7 @@ import {
   History
 } from 'lucide-react';
 
-import { fetchUserById } from '../api/users';
+import { fetchUserById, fetchMatchHistory } from '../api/users';
 import { getCurrentUserId, clearCurrentUser } from '../auth';
 import { disconnectSocket } from '../socket';
 
@@ -39,11 +39,8 @@ const MyPage = () => {
     // ✨ 2. 백엔드에서 갯수를 가져오는 코드로 교체!
     const fetchMatchCount = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/matches/${myId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setHistoryCount(data.length); // 서버에서 받아온 데이터 갯수로 셋팅
-        }
+        const data = await fetchMatchHistory(myId);
+        setHistoryCount(data.length);
       } catch (err) {
         console.error('히스토리 갯수 로딩 실패:', err);
       }
@@ -277,10 +274,16 @@ const MyPage = () => {
 
                   <h2 className="text-4xl font-black tracking-tight text-white">
                     {userData.nickname}
-                    <span className="text-xl text-stone-500 font-medium ml-2">
-                      #KR1
-                    </span>
                   </h2>
+
+                  {(userData.riot_name || userData.riot_tag) && (
+                    <p className="mt-2 text-lg font-bold text-stone-300">
+                      {userData.riot_name || userData.nickname}
+                      <span className="text-stone-500 font-medium ml-1">
+                        #{userData.riot_tag || 'KR1'}
+                      </span>
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-3 mt-3">
 
@@ -551,6 +554,12 @@ const MyPage = () => {
             </div>
 
             <div className="space-y-4">
+
+              <InfoBox
+                label="롤 닉네임"
+                value={`${userData.riot_name || userData.nickname} #${userData.riot_tag || 'KR1'}`}
+                valueColor="text-white"
+              />
 
               <InfoBox
                 label="주 게임 모드"

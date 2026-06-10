@@ -8,6 +8,7 @@ const EXPECTED_COLUMNS = [
   'id',
   'nickname',
   'password_hash',
+  'riot_name',
   'riot_tag',
   'tier',
   'line',
@@ -24,7 +25,7 @@ const LINES = ['탑', '정글', '미드', '원딜', '서포터'];
 const DUO_STYLES = ['상대방한테 맞춰요', '빡겜 유저', '즐겜 유저'];
 
 // 스키마가 바뀔 때마다 이 시그니처를 올려서 자동 마이그레이션 트리거
-const SCHEMA_SIGNATURE = 'v3-riot-tag-added';
+const SCHEMA_SIGNATURE = 'v4-riot-name-added';
 
 function resolveDbPath() {
   if (!process.env.DB_PATH) {
@@ -101,6 +102,7 @@ async function createUsersTable() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nickname VARCHAR UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      riot_name VARCHAR,
       riot_tag VARCHAR(5),
       tier VARCHAR,
       line TEXT CHECK(line IN ('탑', '정글', '미드', '원딜', '서포터')),
@@ -207,6 +209,7 @@ async function seedTestUsers() {
     INSERT INTO users (
       nickname,
       password_hash,
+      riot_name,
       riot_tag,
       tier,
       line,
@@ -217,20 +220,20 @@ async function seedTestUsers() {
       profile_image,
       duo_style,
       game_mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   const testUsers = [
-    ['정글왕', 'Diamond', '정글', '탑', '초반 갱킹·오브젝트 위주 플레이', 4.8, 42, 'https://api.dicebear.com/7.x/avataaars/svg?seed=jungle1', '빡겜 유저', '솔로랭크'],
+    ['정글왕', 'Diamond', '정글', '탑', '초반 갱킹·오브젝트 위주 플레이', 4.8, 42, '/avatars/poro.png', '빡겜 유저', '솔로랭크'],
     ['미드장인', 'Master', '미드', '정글', '로밍으로 팀 전체 이득 보는 스타일', 4.6, 31, 'https://api.dicebear.com/7.x/avataaars/svg?seed=mid1', '상대방한테 맞춰요', '솔로랭크'],
     ['탑라이너', 'Platinum', '탑', '미드', '스플릿·텔타워프 자주 사용', 4.2, 18, 'https://api.dicebear.com/7.x/avataaars/svg?seed=top1', '즐겜 유저', '일반'],
     ['서폿천사', 'Diamond', '서포터', '미드', '시야·교전 주도, 팀 보호 우선', 4.9, 55, 'https://api.dicebear.com/7.x/avataaars/svg?seed=sup1', '상대방한테 맞춰요', '솔로랭크'],
-    ['원딜장인', 'Gold', '원딜', '서포터', '후반 캐리형, 안전한 딜링', 4.0, 12, 'https://api.dicebear.com/7.x/avataaars/svg?seed=adc1', '즐겜 유저', '일반'],
+    ['원딜장인', 'Gold', '원딜', '서포터', '후반 캐리형, 안전한 딜링', 4.0, 12, '/avatars/maltese.png', '즐겜 유저', '일반'],
     ['버드유저', 'Emerald', '미드', '원딜', '버드·제어 라인으로 운영', 4.4, 22, 'https://api.dicebear.com/7.x/avataaars/svg?seed=bird1', '상대방한테 맞춰요', '자유랭크'],
     ['정글러2', 'Silver', '정글', '서포터', '정글링·스케일링 위주', 3.8, 8, 'https://api.dicebear.com/7.x/avataaars/svg?seed=jungle2', '즐겜 유저', '일반'],
-    ['서폿메인', 'Platinum', '서포터', '원딜', '버프·힐 중심 서폿', 4.3, 19, 'https://api.dicebear.com/7.x/avataaars/svg?seed=sup2', '상대방한테 맞춰요', '자유랭크'],
+    ['서폿메인', 'Platinum', '서포터', '원딜', '버프·힐 중심 서폿', 4.3, 19, '/avatars/dino-dog.png', '상대방한테 맞춰요', '자유랭크'],
     ['탑솔러', 'Diamond', '탑', '정글', '탱커·프론트라인 위주', 4.5, 27, 'https://api.dicebear.com/7.x/avataaars/svg?seed=top2', '빡겜 유저', '솔로랭크'],
-    ['미드메이지', 'Master', '미드', '탑', '버스트·픽오프 중심', 4.7, 38, 'https://api.dicebear.com/7.x/avataaars/svg?seed=mid2', '빡겜 유저', '솔로랭크'],
+    ['미드메이지', 'Master', '미드', '탑', '버스트·픽오프 중심', 4.7, 38, '/avatars/poodle.png', '빡겜 유저', '솔로랭크'],
   ];
 
   await run('BEGIN TRANSACTION');
@@ -239,7 +242,7 @@ async function seedTestUsers() {
     for (const user of testUsers) {
       // [nickname, ...rest] → [nickname, password_hash, ...rest]
       const [nickname, ...rest] = user;
-      await run(insertSql, [nickname, seedPasswordHash, 'KR1', ...rest]);
+      await run(insertSql, [nickname, seedPasswordHash, nickname, 'KR1', ...rest]);
     }
 
     await run('COMMIT');

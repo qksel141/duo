@@ -108,13 +108,66 @@ function initSocket(httpServer) {
       });
     });
 
-    // 채팅방 나가기
+    // 채팅방 나가기 (소켓 룸만 떠남)
     socket.on('chat:leave', ({ partnerId }) => {
       const room = makeRoomName(myId, partnerId);
 
       if (!room) return;
 
       socket.leave(room);
+    });
+
+    // 채팅방 완전히 나가기 (매칭 해제 + 상대에게 알림)
+    socket.on('chat:exit', async ({ partnerId }, ack) => {
+      try {
+        const target = Number(partnerId);
+
+        if (!target) {
+          if (typeof ack === 'function') {
+            ack({ ok: false, error: 'partnerId 누락' });
+          }
+          return;
+        }
+
+        // 좋아요 / 매칭 / 대화 내역 제거 → 메인에서 서로 다시 발견 가능
+        await run(
+          `DELETE FROM likes
+             WHERE (from_user_id = ? AND to_user_id = ?)
+                OR (from_user_id = ? AND to_user_id = ?)`,
+          [myId, target, target, myId]
+        );
+
+        await run(
+          `DELETE FROM matches
+             WHERE (user_id = ? AND matched_user_id = ?)
+                OR (user_id = ? AND matched_user_id = ?)`,
+          [myId, target, target, myId]
+        );
+
+        await run(
+          `DELETE FROM chats
+             WHERE (sender_id = ? AND receiver_id = ?)
+                OR (sender_id = ? AND receiver_id = ?)`,
+          [myId, target, target, myId]
+        );
+
+        const me = await getUserPublic(myId);
+
+        // 상대에게 "상대가 채팅방을 나갔어요" 알림
+        io.to(`user:${target}`).emit('chat:partner:left', {
+          fromUserId: myId,
+          fromNickname: me?.nickname ?? '상대',
+        });
+
+        if (typeof ack === 'function') {
+          ack({ ok: true });
+        }
+      } catch (err) {
+        console.error('chat:exit 실패', err);
+        if (typeof ack === 'function') {
+          ack({ ok: false, error: err.message });
+        }
+      }
     });
 
     // 메시지 전송
