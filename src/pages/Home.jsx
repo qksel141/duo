@@ -7,12 +7,14 @@ import {
   User,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Smartphone,
+  Monitor
 } from 'lucide-react';
 
 import { fetchUsers, toProfile } from '../api/users';
 import { getCurrentUser, getCurrentUserId, clearCurrentUser } from '../auth';
-import { disconnectSocket, getSocket } from '../socket';
+import { disconnectSocket, getSocket, subscribePartnerLeft } from '../socket';
 import LikesInbox from '../components/LikesInbox';
 import { getTierBadgeClass, getTierShortLabel } from '../utils/tier';
 
@@ -40,6 +42,23 @@ export default function Home() {
     return JSON.parse(sessionStorage.getItem(getRemovedIdsKey(myId))) || [];
   });
   const [matchedProfile, setMatchedProfile] = useState(null);
+
+  // 보기 모드: 'pc' | 'mobile' — 모바일 모드에서만 하단 네비를 표시
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('viewMode') || 'pc';
+  });
+  const isMobileMode = viewMode === 'mobile';
+
+  useEffect(() => {
+    localStorage.setItem('viewMode', viewMode);
+  }, [viewMode]);
+
+  // 주로 하는 모드 카테고리 필터
+  const [category, setCategory] = useState('전체');
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [category]);
 
   const handleLogout = () => {
     disconnectSocket();
@@ -171,6 +190,17 @@ export default function Home() {
     };
   }, [myId]);
 
+  // 상대가 채팅방을 나가면 removedIds에서 제거 → 메인에서 다시 보이도록
+  useEffect(() => {
+    const unsub = subscribePartnerLeft(({ fromUserId }) => {
+      if (fromUserId == null) return;
+      setRemovedIds((prev) =>
+        prev.filter((id) => Number(id) !== Number(fromUserId))
+      );
+    });
+    return unsub;
+  }, []);
+
   // 최초 유저 목록 불러오기
   useEffect(() => {
     let cancelled = false;
@@ -198,12 +228,24 @@ export default function Home() {
     };
   }, []);
 
-  const visibleProfiles = profiles.filter((profile) => {
+  const matchesCategory = (profile) => {
+    if (category === '전체') return true;
+    const mode = profile.gameMode || '';
+    if (category === '랭크') return mode.includes('랭크');
+    return mode === category;
+  };
+
+  const categoryProfiles = profiles.filter((profile) => {
     if (Number(profile.id) === Number(myId)) return false;
-    return !removedIds.map(Number).includes(Number(profile.id));
+    return matchesCategory(profile);
   });
 
+  const visibleProfiles = categoryProfiles.filter(
+    (profile) => !removedIds.map(Number).includes(Number(profile.id))
+  );
+
   const profileCount = visibleProfiles.length;
+  const hasNoUsersInCategory = categoryProfiles.length === 0;
 
   const addRemovedId = (id) => {
     setRemovedIds((prev) => {
@@ -397,6 +439,34 @@ export default function Home() {
         </button>
 
         <div className="flex items-center gap-6">
+          {/* 모바일 / PC 모드 토글 */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
+            <button
+              onClick={() => setViewMode('mobile')}
+              title="모바일 모드"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                isMobileMode
+                  ? 'bg-violet-600 text-white'
+                  : 'text-stone-400 hover:text-white'
+              }`}
+            >
+              <Smartphone size={16} />
+              모바일
+            </button>
+            <button
+              onClick={() => setViewMode('pc')}
+              title="PC 모드"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-300 ${
+                !isMobileMode
+                  ? 'bg-violet-600 text-white'
+                  : 'text-stone-400 hover:text-white'
+              }`}
+            >
+              <Monitor size={16} />
+              PC
+            </button>
+          </div>
+
           <LikesInbox />
 
           <button
@@ -437,6 +507,25 @@ export default function Home() {
         </div>
       </header>
 
+      {/* 모드 카테고리 필터 */}
+      <div className="w-full max-w-[90%] xl:max-w-[1440px] mx-auto px-4 md:px-8 z-40">
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          {['전체', '일반', '랭크', '칼바람'].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={`px-5 py-2 rounded-full text-sm font-bold border transition-all duration-300 ${
+                category === cat
+                  ? 'bg-violet-600 border-violet-500 text-white'
+                  : 'bg-white/5 border-white/10 text-stone-400 hover:text-white'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 메인 */}
       <main className="flex-1 flex items-center justify-center px-4 pb-28 select-none z-10">
         <div className="flex items-start gap-16 relative max-w-6xl w-full justify-center">
@@ -466,8 +555,10 @@ export default function Home() {
               )}
 
               {!loading && !error && profileCount === 0 && (
-                <div className="text-stone-400 text-sm">
-                  모든 유저를 봤습니다!
+                <div className="text-stone-400 text-sm text-center">
+                  {hasNoUsersInCategory
+                    ? '유저가 없습니다!'
+                    : '모든 유저를 봤습니다!'}
                 </div>
               )}
 
@@ -569,7 +660,8 @@ export default function Home() {
         </div>
       </main>
 
-      {/* 하단 네비 */}
+      {/* 하단 네비 — 모바일 모드에서만 표시 */}
+      {isMobileMode && (
       <nav className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-2xl border-t border-purple-500/10 z-40">
         <div className="max-w-6xl mx-auto flex justify-center items-center gap-24 py-5">
           <button
@@ -597,6 +689,7 @@ export default function Home() {
           </button>
         </div>
       </nav>
+      )}
 
       {/* 매칭 성공 모달 */}
       {matchedProfile && (

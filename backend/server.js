@@ -35,6 +35,15 @@ app.use('/matches', matchesRouter);
 app.use('/ratings', ratingsRouter);
 app.use('/likes', likesRouter);
 
+// 프로덕션: 프론트엔드 빌드(dist)를 같은 서버에서 서빙 → 배포 시 localhost 불필요
+const FRONTEND_DIST = path.join(__dirname, '..', 'dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(FRONTEND_DIST));
+  app.get(/^\/(?!auth|users|chats|reports|matches|ratings|likes|health|socket\.io).*/, (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
+  });
+}
+
 async function start() {
   try {
     await initDatabase();

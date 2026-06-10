@@ -11,6 +11,29 @@ let chatListenersAttached = false;
 // 채팅 수신 구독자
 const chatIncomingHandlers = new Set();
 
+// 상대가 채팅방을 나감 이벤트 구독자
+const partnerLeftHandlers = new Set();
+
+export function subscribePartnerLeft(handler) {
+  partnerLeftHandlers.add(handler);
+  return () => partnerLeftHandlers.delete(handler);
+}
+
+// 떠난 상대를 내 removedIds(sessionStorage)에서 제거 → 메인에서 다시 보이도록
+function dropFromRemovedIds(partnerId) {
+  try {
+    const myId = getCurrentUserId();
+    if (!myId || partnerId == null) return;
+
+    const key = `removedIds:${myId}`;
+    const list = JSON.parse(sessionStorage.getItem(key)) || [];
+    const next = list.filter((id) => Number(id) !== Number(partnerId));
+    sessionStorage.setItem(key, JSON.stringify(next));
+  } catch (err) {
+    console.warn('[socket] removedIds 정리 실패', err);
+  }
+}
+
 // 페이지가 마운트되기 전에 도착한 메시지를 잃지 않기 위한 글로벌 버퍼
 // chat row의 id를 키로 가짐
 const recentMessageBuffer = new Map();
@@ -47,6 +70,17 @@ function attachGlobalChatListeners(sock) {
 
   sock.on('chat:message', (row) => dispatch(row, 'message'));
   sock.on('chat:notify', (row) => dispatch(row, 'notify'));
+
+  sock.on('chat:partner:left', (payload) => {
+    dropFromRemovedIds(payload?.fromUserId);
+    partnerLeftHandlers.forEach((handler) => {
+      try {
+        handler(payload);
+      } catch (err) {
+        console.warn('[socket] partnerLeft handler error', err);
+      }
+    });
+  });
 }
 
 export function subscribeChatIncoming(handler) {
@@ -217,6 +251,18 @@ export function emitMatchEndReject(partnerId) {
   sock.emit('match:end:reject', { partnerId: Number(partnerId) });
 }
 
+// 채팅방 완전히 나가기 (매칭 해제 + 상대 알림)
+export function emitChatExit(partnerId) {
+  const sock = getSocket();
+  if (!sock || !partnerId) return Promise.resolve({ ok: false });
+
+  return new Promise((resolve) => {
+    sock.emit('chat:exit', { partnerId: Number(partnerId) }, (ack) => {
+      resolve(ack || {});
+    });
+  });
+}
+
 export function disconnectSocket() {
   if (socket) {
     socket.disconnect();
@@ -224,6 +270,7 @@ export function disconnectSocket() {
     currentSocketUserId = null;
     chatListenersAttached = false;
     chatIncomingHandlers.clear();
+    partnerLeftHandlers.clear();
     recentMessageBuffer.clear();
   }
 }

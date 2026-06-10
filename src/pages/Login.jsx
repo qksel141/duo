@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { Camera, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { signup, login } from '../api/auth';
@@ -23,9 +24,22 @@ export default function Login() {
   const [line, setLine] = useState('');
   const [gameMode, setGameMode] = useState('');
   const [duoStyle, setDuoStyle] = useState('');
+  const [riotName, setRiotName] = useState('');
   const [riotTag, setRiotTag] = useState('');
+  const [profileImage, setProfileImage] = useState(''); // 안 넣으면 빈 값(없음)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  const fileInputRef = useRef(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => setProfileImage(reader.result);
+    reader.readAsDataURL(file);
+  };
 
   const isSignup = mode === 'signup';
 
@@ -34,7 +48,9 @@ export default function Login() {
     setError(null);
     setPassword('');
     setPasswordConfirm('');
+    setRiotName('');
     setRiotTag('');
+    setProfileImage('');
   };
 
   const handleSubmit = async (e) => {
@@ -58,9 +74,9 @@ export default function Login() {
         setError('비밀번호 확인이 일치하지 않습니다.');
         return;
       }
-      // 아래 줄 수정 (riotTag 검사 추가)
-      if (!riotTag || !tier || !line || !gameMode || !duoStyle) {
-        setError('라이엇 태그 / 티어 / 포지션 / 모드 / 스타일을 모두 입력해 주세요.');
+      // 아래 줄 수정 (롤 닉네임 / 태그 검사 추가)
+      if (!riotName.trim() || !riotTag || !tier || !line || !gameMode || !duoStyle) {
+        setError('롤 닉네임 / 태그 / 티어 / 포지션 / 모드 / 스타일을 모두 입력해 주세요.');
         return;
       }
     }
@@ -72,11 +88,13 @@ export default function Login() {
         ? await signup({
             nickname: trimmedNickname,
             password,
+            riot_name: riotName.trim(), // 롤 인게임 닉네임
             riot_tag: riotTag, // 백엔드로 보낼 짐싸기에 태그 추가!
             tier,
             line,
             game_mode: gameMode,
             duo_style: duoStyle,
+            profile_image: profileImage || null, // 안 넣으면 없는 걸로
           })
         : await login({ nickname: trimmedNickname, password });
 
@@ -127,30 +145,49 @@ export default function Login() {
           "
         >
 
-          <div className="flex gap-3">
-            {/* 닉네임 구역 */}
-            <div className="flex-1">
-              <label className="block text-xs font-bold text-stone-400 mb-2">
-                닉네임
-              </label>
-              <input
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                autoComplete="username"
-                maxLength={20}
-                placeholder="예: 정글왕"
-                className="
-                  w-full h-12 px-4 rounded-xl
-                  bg-black/40 border border-white/10
-                  outline-none focus:border-violet-500
-                  text-white placeholder:text-stone-600
-                "
-              />
-            </div>
+          {/* 닉네임 구역 (계정 닉네임) */}
+          <div>
+            <label className="block text-xs font-bold text-stone-400 mb-2">
+              닉네임
+            </label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              autoComplete="username"
+              maxLength={20}
+              placeholder="예: 정글왕"
+              className="
+                w-full h-12 px-4 rounded-xl
+                bg-black/40 border border-white/10
+                outline-none focus:border-violet-500
+                text-white placeholder:text-stone-600
+              "
+            />
+          </div>
 
-            {/* 태그 구역 (회원가입일 때만 우측에 등장) */}
-            {isSignup && (
+          {/* 롤 닉네임 + 태그 구역 (회원가입일 때만 닉네임 아래에 등장) */}
+          {isSignup && (
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-stone-400 mb-2">
+                  롤 닉네임
+                </label>
+                <input
+                  type="text"
+                  value={riotName}
+                  onChange={(e) => setRiotName(e.target.value)}
+                  maxLength={16}
+                  placeholder="예: Hide on bush"
+                  className="
+                    w-full h-12 px-4 rounded-xl
+                    bg-black/40 border border-white/10
+                    outline-none focus:border-violet-500
+                    text-white placeholder:text-stone-600
+                  "
+                />
+              </div>
+
               <div className="w-[35%]">
                 <label className="block text-xs font-bold text-stone-400 mb-2">
                   태그
@@ -170,8 +207,8 @@ export default function Login() {
                   />
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-stone-400 mb-2">
@@ -194,6 +231,64 @@ export default function Login() {
 
           {isSignup && (
             <>
+              <div>
+                <label className="block text-xs font-bold text-stone-400 mb-2">
+                  프로필 사진 <span className="text-stone-600 font-medium">(선택)</span>
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="
+                        w-20 h-20 rounded-full overflow-hidden shrink-0
+                        bg-black/40 border border-white/10
+                        flex items-center justify-center
+                        text-stone-500 hover:border-violet-500 transition-all
+                      "
+                    >
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt="프로필 미리보기"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Camera size={24} />
+                      )}
+                    </button>
+
+                    {profileImage && (
+                      <button
+                        type="button"
+                        onClick={() => setProfileImage('')}
+                        className="
+                          absolute -top-1 -right-1 w-6 h-6 rounded-full
+                          bg-stone-800 border border-white/10
+                          flex items-center justify-center
+                          text-stone-300 hover:text-white hover:bg-stone-700 transition-all
+                        "
+                        title="사진 제거"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-stone-500 leading-relaxed">
+                    사진을 넣지 않으면 기본 프로필로 표시됩니다.
+                  </p>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-stone-400 mb-2">
                   비밀번호 확인

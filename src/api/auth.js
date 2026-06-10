@@ -20,14 +20,17 @@ async function postJson(path, body) {
   return data;
 }
 
-export async function signup({ nickname, password, tier, line, game_mode, duo_style }) {
+export async function signup({ nickname, password, riot_name, riot_tag, tier, line, game_mode, duo_style, profile_image }) {
   const data = await postJson('/auth/signup', {
     nickname,
     password,
+    riot_name,
+    riot_tag,
     tier,
     line,
     game_mode,
     duo_style,
+    profile_image,
   });
   return data.user;
 }

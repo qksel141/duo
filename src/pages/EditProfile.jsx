@@ -15,7 +15,8 @@ const EditProfile = () => {
   const myId = getCurrentUserId();
 
   const [nickname, setNickname] = useState('');
-  const [tag, setTag] = useState('KR1');
+  const [riotName, setRiotName] = useState('');
+  const [riotTag, setRiotTag] = useState('KR1');
   const [bio, setBio] = useState('');
 
   const [profileImage, setProfileImage] = useState(
@@ -65,6 +66,8 @@ const EditProfile = () => {
         const data = await fetchUserById(myId);
 
         setNickname(data.nickname || '');
+        setRiotName(data.riot_name || '');
+        setRiotTag(data.riot_tag || 'KR1');
         setTier(data.tier || 'Challenger');
         setLane(data.line || '미드');
         setBio(data.intro || '');
@@ -129,14 +132,21 @@ const EditProfile = () => {
       return;
     }
 
-    if (nickname.trim() === '' || tag.trim() === '') {
-      alert('닉네임과 태그를 모두 입력해 주세요!');
+    if (nickname.trim() === '') {
+      alert('닉네임을 입력해 주세요!');
+      return;
+    }
+
+    if (!riotName.trim() || !riotTag.trim()) {
+      alert('롤 닉네임과 태그를 모두 입력해 주세요!');
       return;
     }
 
     try {
       const updateData = {
         nickname,
+        riot_name: riotName.trim(),
+        riot_tag: riotTag.trim().toUpperCase(),
         tier,
         line: lane,
         intro: bio,
@@ -341,17 +351,42 @@ const EditProfile = () => {
 
             {/* 닉네임 */}
             <div>
-
               <label className="text-sm font-black text-stone-300">
-                닉네임 및 라이엇 태그
+                닉네임
               </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={20}
+                placeholder="예: 정글왕"
+                className="
+                  mt-3 w-full
+                  bg-black/30
+                  border border-white/5
+                  rounded-2xl
+                  px-5 py-4
+                  text-white
+                  outline-none
+                  focus:border-violet-500/40
+                  focus:bg-black/50
+                  transition-all duration-300
+                "
+              />
+            </div>
 
+            {/* 롤 닉네임 + 태그 */}
+            <div>
+              <label className="text-sm font-black text-stone-300">
+                롤 닉네임 및 태그
+              </label>
               <div className="flex gap-3 mt-3">
-
                 <input
                   type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
+                  value={riotName}
+                  onChange={(e) => setRiotName(e.target.value)}
+                  maxLength={16}
+                  placeholder="예: Hide on bush"
                   className="
                     flex-1
                     bg-black/30
@@ -367,7 +402,6 @@ const EditProfile = () => {
                 />
 
                 <div className="relative w-32">
-
                   <span
                     className="
                       absolute left-4 top-1/2
@@ -377,11 +411,12 @@ const EditProfile = () => {
                   >
                     #
                   </span>
-
                   <input
                     type="text"
-                    value={tag}
-                    onChange={(e) => setTag(e.target.value)}
+                    value={riotTag}
+                    onChange={(e) => setRiotTag(e.target.value.replace('#', ''))}
+                    maxLength={5}
+                    placeholder="KR1"
                     className="
                       w-full
                       bg-black/30
@@ -395,11 +430,8 @@ const EditProfile = () => {
                       focus:border-violet-500/40
                     "
                   />
-
                 </div>
-
               </div>
-
             </div>
 
             {/* 티어 */}

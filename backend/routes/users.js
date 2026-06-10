@@ -6,6 +6,8 @@ const router = express.Router();
 
 const USER_FIELDS = [
   'nickname',
+  'riot_name',
+  'riot_tag',
   'tier',
   'line',
   'sub_line',
