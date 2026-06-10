@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     # 빌드 시 NODE_ENV=production 이면 vite(devDependency)가 설치 안 됨 → 빌드에서 제외
-    buildCommand: npm install && npm run build && cd backend && npm install
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm install && npm run build && cd backend && npm install
     startCommand: cd backend && NODE_ENV=production node server.js
     envVars:
       - key: NODE_VERSION
