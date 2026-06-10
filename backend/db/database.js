@@ -156,6 +156,10 @@ async function initDatabase() {
     console.log('users 테이블 스키마 변경 — 테이블 재생성');
   }
 
+  // 🔥 핵심 추가: 켜질 때마다 매칭과 평가 기록이 담긴 테이블을 흔적도 없이 폭파시킵니다!
+  await exec('DROP TABLE IF EXISTS ratings');
+  await exec('DROP TABLE IF EXISTS matches');
+
   await createUsersTable();
   await seedTestUsers();
   console.log('users 테이블 준비 완료');
