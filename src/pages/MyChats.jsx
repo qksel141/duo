@@ -104,7 +104,7 @@ export default function MyChats() {
         backdrop-blur-xl bg-black/20
       ">
         <button
-          onClick={() => navigate('/mypage', { replace: true })}
+          onClick={() => navigate(-1)}
           className="p-2 rounded-full hover:bg-white/10 transition-all"
         >
           <ArrowLeft size={24} />
