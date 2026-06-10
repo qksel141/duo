@@ -17,6 +17,7 @@ import { getCurrentUser, getCurrentUserId, clearCurrentUser } from '../auth';
 import { disconnectSocket, getSocket, subscribePartnerLeft } from '../socket';
 import LikesInbox from '../components/LikesInbox';
 import { getTierBadgeClass, getTierShortLabel } from '../utils/tier';
+import { useMobileMode } from '../context/MobileMode';
 
 function renderStars(rating) {
   const safe = Math.max(0, Math.min(5, Math.round(rating)));
@@ -44,14 +45,7 @@ export default function Home() {
   const [matchedProfile, setMatchedProfile] = useState(null);
 
   // 보기 모드: 'pc' | 'mobile' — 모바일 모드에서만 하단 네비를 표시
-  const [viewMode, setViewMode] = useState(() => {
-    return localStorage.getItem('viewMode') || 'pc';
-  });
-  const isMobileMode = viewMode === 'mobile';
-
-  useEffect(() => {
-    localStorage.setItem('viewMode', viewMode);
-  }, [viewMode]);
+  const { isMobileMode, setViewMode } = useMobileMode();
 
   // 주로 하는 모드 카테고리 필터
   const [category, setCategory] = useState('전체');
@@ -383,7 +377,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05030d] text-white flex flex-col relative overflow-hidden">
+    <div className={`${isMobileMode ? 'min-h-full' : 'min-h-screen'} bg-[#05030d] text-white flex flex-col relative overflow-hidden`}>
 
       {/* 파도 Flow 배경 */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -440,7 +434,7 @@ export default function Home() {
 
         <div className="flex items-center gap-6">
           {/* 모바일 / PC 모드 토글 */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
+          <div className={`${isMobileMode ? 'hidden' : 'flex'} items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10`}>
             <button
               onClick={() => setViewMode('mobile')}
               title="모바일 모드"
@@ -471,20 +465,20 @@ export default function Home() {
 
           <button
             onClick={() => navigate('/my-chats')}
-            className="text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300"
+            className={`${isMobileMode ? 'hidden' : ''} text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300`}
           >
             채팅방
           </button>
 
           <button
             onClick={() => navigate('/mypage')}
-            className="px-6 py-2 text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300"
+            className={`${isMobileMode ? 'hidden' : ''} px-6 py-2 text-xl font-black tracking-tight text-white hover:text-purple-300 transition-colors duration-300`}
           >
             마이페이지
           </button>
 
           {currentUser && (
-            <div className="flex items-center gap-3 pl-4 ml-2 border-l border-white/10">
+            <div className={`${isMobileMode ? 'hidden' : 'flex'} items-center gap-3 pl-4 ml-2 border-l border-white/10`}>
               <span className="text-sm text-stone-300">
                 <span className="text-stone-500">접속:</span>{' '}
                 <span className="font-bold text-violet-300">
@@ -527,11 +521,11 @@ export default function Home() {
       </div>
 
       {/* 메인 */}
-      <main className="flex-1 flex items-center justify-center px-4 pb-28 select-none z-10">
-        <div className="flex items-start gap-16 relative max-w-6xl w-full justify-center">
+      <main className={`flex-1 flex items-center justify-center ${isMobileMode ? 'px-2' : 'px-4'} pb-28 select-none z-10`}>
+        <div className={`flex items-start ${isMobileMode ? 'gap-0' : 'gap-16'} relative max-w-6xl w-full justify-center`}>
 
           {/* 왼쪽 화살표 버튼 세로 중앙 정렬 */}
-          <div className="h-[680px] flex items-center">
+          <div className={`${isMobileMode ? 'hidden' : 'flex'} h-[680px] items-center`}>
             <button
               onClick={prevSlide}
               className="w-20 h-20 rounded-full bg-stone-950/40 border border-purple-500/20 flex items-center justify-center text-stone-400 hover:text-white hover:scale-110 transition-all z-40"
@@ -648,7 +642,7 @@ export default function Home() {
           </div>
 
           {/* 오른쪽 화살표 버튼 세로 중앙 정렬 */}
-          <div className="h-[680px] flex items-center">
+          <div className={`${isMobileMode ? 'hidden' : 'flex'} h-[680px] items-center`}>
             <button
               onClick={nextSlide}
               className="w-20 h-20 rounded-full bg-violet-600/90 flex items-center justify-center text-white hover:bg-violet-500 hover:scale-110 transition-all z-40"

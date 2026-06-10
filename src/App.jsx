@@ -18,6 +18,8 @@ import Login from './pages/Login';
 import { isLoggedIn } from './auth';
 import { ToastProvider } from './components/Toast';
 import NotifyProvider from './components/NotifyProvider';
+import MobileFrame from './components/MobileFrame';
+import { MobileModeProvider } from './context/MobileMode';
 
 function RequireAuth({ children }) {
   if (!isLoggedIn()) {
@@ -29,11 +31,13 @@ function RequireAuth({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
-        <NotifyProvider>
-          <AppRoutes />
-        </NotifyProvider>
-      </ToastProvider>
+      <MobileModeProvider>
+        <ToastProvider>
+          <NotifyProvider>
+            <AppRoutes />
+          </NotifyProvider>
+        </ToastProvider>
+      </MobileModeProvider>
     </BrowserRouter>
   );
 }
@@ -48,7 +52,9 @@ function AppRoutes() {
           path="/"
           element={
             <RequireAuth>
-              <Home />
+              <MobileFrame>
+                <Home />
+              </MobileFrame>
             </RequireAuth>
           }
         />
@@ -57,7 +63,9 @@ function AppRoutes() {
           path="/mypage"
           element={
             <RequireAuth>
-              <MyPage />
+              <MobileFrame>
+                <MyPage />
+              </MobileFrame>
             </RequireAuth>
           }
         />

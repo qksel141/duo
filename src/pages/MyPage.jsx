@@ -14,6 +14,7 @@ import {
 import { fetchUserById, fetchMatchHistory } from '../api/users';
 import { getCurrentUserId, clearCurrentUser } from '../auth';
 import { disconnectSocket } from '../socket';
+import { useMobileMode } from '../context/MobileMode';
 
 const DEFAULT_AVATAR =
   'https://api.dicebear.com/7.x/avataaars/svg?seed=duo-default';
@@ -21,6 +22,7 @@ const DEFAULT_AVATAR =
 const MyPage = () => {
   const navigate = useNavigate();
   const myId = getCurrentUserId();
+  const { isMobileMode } = useMobileMode();
 
   const [userData, setUserData] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -157,7 +159,7 @@ const MyPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#05030d] text-white relative overflow-hidden">
+    <div className={`${isMobileMode ? 'min-h-full' : 'min-h-screen'} bg-[#05030d] text-white relative overflow-hidden`}>
 
       {/* 배경 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -231,7 +233,7 @@ const MyPage = () => {
       {/* Main */}
       <main className="relative z-10 max-w-6xl mx-auto px-6 pb-36">
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-8">
+        <div className={`grid grid-cols-1 ${isMobileMode ? '' : 'xl:grid-cols-[1.1fr_0.9fr]'} gap-8`}>
 
           {/* 왼쪽 */}
           <div className="space-y-6">
