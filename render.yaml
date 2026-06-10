@@ -3,10 +3,11 @@ services:
     name: duo
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev && npm run build && cd backend && npm install
-    startCommand: cd backend && node server.js
+    # 빌드 시 NODE_ENV=production 이면 vite(devDependency)가 설치 안 됨 → 빌드에서 제외
+    buildCommand: npm install && npm run build && cd backend && npm install
+    startCommand: cd backend && NODE_ENV=production node server.js
     envVars:
-      - key: NODE_ENV
-        value: production
+      - key: NODE_VERSION
+        value: "22.16.0"
       - key: VITE_API_BASE_URL
         value: ""
