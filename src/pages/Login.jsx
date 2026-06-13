@@ -210,6 +210,66 @@ export default function Login() {
             </div>
           )}
 
+          {isSignup && (
+            <div>
+              <label className="block text-xs font-bold text-stone-400 mb-2">
+                프로필 사진 <span className="text-stone-600 font-medium">(선택)</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="
+                      w-20 h-20 rounded-full overflow-hidden shrink-0
+                      bg-black/40 border border-white/10
+                      flex items-center justify-center
+                      text-stone-500 hover:border-violet-500 transition-all
+                    "
+                  >
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt="프로필 미리보기"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Camera size={24} />
+                    )}
+                  </button>
+
+                  {profileImage && (
+                    <button
+                      type="button"
+                      onClick={() => setProfileImage('')}
+                      className="
+                        absolute -top-1 -right-1 w-6 h-6 rounded-full
+                        bg-stone-800 border border-white/10
+                        flex items-center justify-center
+                        text-stone-300 hover:text-white hover:bg-stone-700 transition-all
+                      "
+                      title="사진 제거"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  사진을 넣지 않으면 기본 프로필로 표시됩니다.
+                </p>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-stone-400 mb-2">
               비밀번호
@@ -230,85 +290,28 @@ export default function Login() {
           </div>
 
           {isSignup && (
+            <div>
+              <label className="block text-xs font-bold text-stone-400 mb-2">
+                비밀번호 확인
+              </label>
+              <input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                autoComplete="new-password"
+                placeholder="다시 입력"
+                className="
+                  w-full h-12 px-4 rounded-xl
+                  bg-black/40 border border-white/10
+                  outline-none focus:border-violet-500
+                  text-white placeholder:text-stone-600
+                "
+              />
+            </div>
+          )}
+
+          {isSignup && (
             <>
-              <div>
-                <label className="block text-xs font-bold text-stone-400 mb-2">
-                  프로필 사진 <span className="text-stone-600 font-medium">(선택)</span>
-                </label>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="
-                        w-20 h-20 rounded-full overflow-hidden shrink-0
-                        bg-black/40 border border-white/10
-                        flex items-center justify-center
-                        text-stone-500 hover:border-violet-500 transition-all
-                      "
-                    >
-                      {profileImage ? (
-                        <img
-                          src={profileImage}
-                          alt="프로필 미리보기"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Camera size={24} />
-                      )}
-                    </button>
-
-                    {profileImage && (
-                      <button
-                        type="button"
-                        onClick={() => setProfileImage('')}
-                        className="
-                          absolute -top-1 -right-1 w-6 h-6 rounded-full
-                          bg-stone-800 border border-white/10
-                          flex items-center justify-center
-                          text-stone-300 hover:text-white hover:bg-stone-700 transition-all
-                        "
-                        title="사진 제거"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-stone-500 leading-relaxed">
-                    사진을 넣지 않으면 기본 프로필로 표시됩니다.
-                  </p>
-
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-stone-400 mb-2">
-                  비밀번호 확인
-                </label>
-                <input
-                  type="password"
-                  value={passwordConfirm}
-                  onChange={(e) => setPasswordConfirm(e.target.value)}
-                  autoComplete="new-password"
-                  placeholder="다시 입력"
-                  className="
-                    w-full h-12 px-4 rounded-xl
-                    bg-black/40 border border-white/10
-                    outline-none focus:border-violet-500
-                    text-white placeholder:text-stone-600
-                  "
-                />
-              </div>
-              
-
               <div>
                 <label className="block text-xs font-bold text-stone-400 mb-2">
                   현재 티어
