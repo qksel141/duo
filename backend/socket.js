@@ -92,6 +92,13 @@ function initSocket(httpServer) {
       userId: myId
     });
 
+    // 클라이언트가 마운트 시점에 목록을 놓쳤을 때 다시 요청할 수 있게
+    socket.on('online:request', () => {
+      socket.emit('online:users', {
+        userIds: getOnlineUserIds()
+      });
+    });
+
     console.log(`소켓 연결: user=${myId} sid=${socket.id}`);
 
     // 1:1 채팅방 입장

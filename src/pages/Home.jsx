@@ -148,10 +148,25 @@ export default function Home() {
     socket.on('user:online', handleUserOnline);
     socket.on('user:offline', handleUserOffline);
 
+    const requestOnlineUsers = () => {
+      socket.emit('online:request');
+    };
+
+    // 소켓이 NotifyProvider 등에서 먼저 연결되면 online:users를 놓칠 수 있음 → 재요청
+    if (socket.connected) {
+      requestOnlineUsers();
+    } else {
+      socket.once('connect', requestOnlineUsers);
+    }
+
+    socket.io.on('reconnect', requestOnlineUsers);
+
     return () => {
       socket.off('online:users', handleOnlineUsers);
       socket.off('user:online', handleUserOnline);
       socket.off('user:offline', handleUserOffline);
+      socket.off('connect', requestOnlineUsers);
+      socket.io.off('reconnect', requestOnlineUsers);
     };
   }, [myId]);
 
